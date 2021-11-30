@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PurpleSofa", "PurpleSofa\PurpleSofa.csproj", "{BC5DABD9-8764-4FB6-B6A4-0571E8D10E0F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PurpleSofa.Tests", "PurpleSofa.Tests\PurpleSofa.Tests.csproj", "{6C9122E8-1F85-4FA8-8879-D78CB145990C}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{BC5DABD9-8764-4FB6-B6A4-0571E8D10E0F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BC5DABD9-8764-4FB6-B6A4-0571E8D10E0F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BC5DABD9-8764-4FB6-B6A4-0571E8D10E0F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BC5DABD9-8764-4FB6-B6A4-0571E8D10E0F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6C9122E8-1F85-4FA8-8879-D78CB145990C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6C9122E8-1F85-4FA8-8879-D78CB145990C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6C9122E8-1F85-4FA8-8879-D78CB145990C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6C9122E8-1F85-4FA8-8879-D78CB145990C}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
