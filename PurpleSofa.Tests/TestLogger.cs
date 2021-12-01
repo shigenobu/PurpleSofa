@@ -20,6 +20,16 @@ namespace PurpleSofa.Tests
             PsLogger.Debug("This is Debug.");
             Assert.True(true);
         }
+        
+        [Fact]
+        public void TestStop()
+        {
+            PsLogger.StopLogger = true;
+            PsLogger.Error("This is Error.");
+            PsLogger.Info("This is Info.");
+            PsLogger.Debug("This is Debug.");
+            Assert.True(true);
+        }
 
         [Fact]
         public void TestFileOut()

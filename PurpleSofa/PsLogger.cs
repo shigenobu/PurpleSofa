@@ -6,32 +6,79 @@ using System.Threading;
 
 namespace PurpleSofa
 {
+    /// <summary>
+    ///     logger.
+    /// </summary>
     public static class PsLogger
     {
+        /// <summary>
+        ///     log writer.
+        ///     Default is stdout writer.
+        ///     If set to null, no logging.
+        /// </summary>
         public static TextWriter? Writer { get; set; } = new StreamWriter(Console.OpenStandardOutput());
 
+        /// <summary>
+        ///     Stop logger.
+        ///     If true, all logging is stop except for Exception.
+        /// </summary>
         public static bool StopLogger { get; set; }
         
+        /// <summary>
+        ///     Verbose.
+        ///     If true, stop 'debug' logging.
+        /// </summary>
         public static bool Verbose { get; set; }
 
+        /// <summary>
+        ///     Logging transfer action.
+        ///     Mainly, for unit test.
+        /// </summary>
         public static Action<object?>? Transfer;
 
+        /// <summary>
+        ///     Error.
+        /// </summary>
+        /// <param name="message">log message</param>
         public static void Error(object? message)
         {
             Out("ERROR", message);
         }
         
+        /// <summary>
+        ///     Info.
+        /// </summary>
+        /// <param name="message">log message</param>
         public static void Info(object? message)
         {
             Out("INFO", message);
         }
         
+        /// <summary>
+        ///     Debug.
+        /// </summary>
+        /// <param name="message">log message</param>
         public static void Debug(object? message)
         {
             if (!Verbose) return;
             Out("DEBUG", message);
         }
+
+        /// <summary>
+        ///     Debug.
+        /// </summary>
+        /// <param name="message">log func</param>
+        public static void Debug(Func<object?> message)
+        {
+            if (!Verbose) return;
+            Out("DEBUG", message.Invoke());
+        }
         
+        /// <summary>
+        ///     Out to log.
+        /// </summary>
+        /// <param name="name">log name</param>
+        /// <param name="message">log message</param>
         private static void Out(string name, object? message)
         {
             if (StopLogger && message is not Exception _) return;
@@ -65,13 +112,29 @@ namespace PurpleSofa
         }
     }
 
+    /// <summary>
+    ///     Logger context.
+    /// </summary>
     internal struct PsLoggerContext
     {
+        /// <summary>
+        ///     Recorded date time.
+        /// </summary>
         internal string Recorded { get; set; }
 
+        /// <summary>
+        ///     Thread id.
+        /// </summary>
         internal string ThreadId { get; set; }
+        
+        /// <summary>
+        ///     Log name.
+        /// </summary>
         internal string Name { get; set; }
 
+        /// <summary>
+        ///     Log message.
+        /// </summary>
         internal string Message { get; set; }
     }
 }

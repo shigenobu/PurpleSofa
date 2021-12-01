@@ -2,11 +2,37 @@ using System;
 
 namespace PurpleSofa
 {
-    public class PsDate
+    /// <summary>
+    ///     Date.
+    /// </summary>
+    public static class PsDate
     {
+        /// <summary>
+        ///     AddSeconds.
+        ///     '0' is default, it's mean to 'utc'.
+        /// </summary>
+        public static double AddSeconds { get; set; }
+
+        /// <summary>
+        ///     Now.
+        /// </summary>
+        /// <returns>yyyy-MM-dd HH:mm:ss.fff</returns>
         public static string Now()
         {
-            return DateTimeOffset.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
+            DateTimeOffset dateTimeOffset = DateTimeOffset.UtcNow;
+            dateTimeOffset = dateTimeOffset.AddSeconds(AddSeconds);
+            return dateTimeOffset.ToString("yyyy-MM-dd HH:mm:ss.fff");
+        }
+
+        /// <summary>
+        ///     Not timestamp milli seconds.
+        /// </summary>
+        /// <returns>milli seconds</returns>
+        public static long NowTimestampMilliSeconds()
+        {
+            DateTimeOffset dateTimeOffset = DateTimeOffset.UtcNow;
+            dateTimeOffset = dateTimeOffset.AddSeconds(AddSeconds);
+            return dateTimeOffset.ToUnixTimeMilliseconds();
         }
     }
 }
