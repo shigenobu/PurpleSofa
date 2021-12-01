@@ -11,7 +11,7 @@ namespace PurpleSofa
     public static class PsExtension
     {
         /// <summary>
-        ///     Byte[] to string.
+        ///     Byte[] to utf8 string.
         /// </summary>
         /// <param name="self">byte array</param>
         /// <returns>utf8 string</returns>
@@ -30,7 +30,7 @@ namespace PurpleSofa
         }
         
         /// <summary>
-        ///     String to byte array.
+        ///     Utf8 string to byte array.
         /// </summary>
         /// <param name="self">utf8 string</param>
         /// <returns>byte array</returns>
@@ -48,11 +48,21 @@ namespace PurpleSofa
             }
         }
 
+        /// <summary>
+        ///     Get socket locale endpoint.
+        /// </summary>
+        /// <param name="self">socket</param>
+        /// <returns>locale endpoint or null</returns>
         public static EndPoint? PxSocketLocalEndPoint(this Socket self)
         {
             return PsUtils.OrNull(() => self.LocalEndPoint);
         }
         
+        /// <summary>
+        ///     Get socket remote endpoint.
+        /// </summary>
+        /// <param name="self">socket</param>
+        /// <returns>remote endpoint or null</returns>
         public static EndPoint? PxSocketRemoteEndPoint(this Socket self)
         {
             return PsUtils.OrNull(() => self.RemoteEndPoint);

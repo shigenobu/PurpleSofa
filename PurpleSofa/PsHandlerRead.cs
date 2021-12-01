@@ -1,40 +1,66 @@
 using System;
 using System.Net.Sockets;
-using System.Reflection.Metadata.Ecma335;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace PurpleSofa
 {
+    /// <summary>
+    ///     Handler read.
+    /// </summary>
     public class PsHandlerRead : PsHandler<PsStateRead>
     {
+        /// <summary>
+        ///     Invalid read size.
+        /// </summary>
         private const int InvalidRead = 0;
         
+        /// <summary>
+        ///     Callback.
+        /// </summary>
         private readonly PsCallback _callback;
 
+        /// <summary>
+        ///     Read buffer size.
+        /// </summary>
         private readonly int _readBufferSize;
 
+        /// <summary>
+        ///     Session manager.
+        /// </summary>
         private readonly PsSessionManager _sessionManager;
-
-        private readonly CancellationTokenSource _closeTokenSource;
         
-        private readonly Task _closeTask;
+        /// <summary>
+        ///     Cancellation token for close task.
+        /// </summary>
+        private readonly CancellationTokenSource _tokenSourceClose;
         
+        /// <summary>
+        ///     Close task.
+        /// </summary>
+        private readonly Task _taskClose;
+        
+        /// <summary>
+        ///     Constructor.
+        /// </summary>
+        /// <param name="callback">callback</param>
+        /// <param name="readBufferSize">read buffer size</param>
+        /// <param name="sessionManager">session manager</param>
         public PsHandlerRead(PsCallback callback, int readBufferSize, PsSessionManager sessionManager)
         {
             _callback = callback;
             _readBufferSize = readBufferSize;
             _sessionManager = sessionManager;
 
-            _closeTokenSource = new CancellationTokenSource();
-            _closeTask = Task.Factory.StartNew(() =>
+            _tokenSourceClose = new CancellationTokenSource();
+            _taskClose = Task.Factory.StartNew(() =>
             {
                 while (true)
                 {
                     // check cancel
-                    if (_closeTokenSource.Token.IsCancellationRequested)
+                    if (_tokenSourceClose.Token.IsCancellationRequested)
                     {
-                        PsLogger.Debug(() => $"Cancel close task: {_closeTokenSource}");
+                        PsLogger.Info($"Cancel close task: {_tokenSourceClose}");
                         return;
                     }
                     
@@ -45,13 +71,17 @@ namespace PurpleSofa
                         new Task((state) =>
                         {
                             PsLogger.Debug(() => $"Close state: {state}");
-                            Completed(InvalidRead, stateRead);    
+                            Completed(InvalidRead, (PsStateRead)state!);    
                         }, stateRead).Start();
                     }
                 }
-            }, _closeTokenSource.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+            }, _tokenSourceClose.Token, TaskCreationOptions.LongRunning, TaskScheduler.Current);
         }
         
+        /// <summary>
+        ///     Prepare.
+        /// </summary>
+        /// <param name="state">state</param>
         public override void Prepare(PsStateRead state)
         {
             try
@@ -66,17 +96,21 @@ namespace PurpleSofa
             }
             catch (Exception e)
             {
-                PsLogger.Error(e);
+                PsLogger.Debug(() => e);
                 Failed(state);
             }
         }
 
+        /// <summary>
+        ///     Complete.
+        /// </summary>
+        /// <param name="result">async result.</param>
         public override void Complete(IAsyncResult result)
         {
             // get state
             if (!GetState(result, out var state))
             {
-                PsLogger.Error($"When read, no state result: {result}");
+                PsLogger.Debug(() => $"When read, no state result: {result}");
                 return;
             }
 
@@ -88,14 +122,21 @@ namespace PurpleSofa
             }
             catch (Exception e)
             {
-                PsLogger.Error(e);
+                PsLogger.Debug(() => e);
                 Failed(state!);
             }
         }
 
+        /// <summary>
+        ///     Failed.
+        /// </summary>
+        /// <param name="state">state</param>
         public override void Failed(PsStateRead state)
         {
             PsLogger.Debug(() => $"Read failed: {state}");
+            
+            // close socket
+            state.Socket.Close();
             
             // force close
             if (state.CloseReason == PsCloseReason.None)
@@ -116,6 +157,11 @@ namespace PurpleSofa
             }
         }
 
+        /// <summary>
+        ///     Completed for 'Complete' method and close task.
+        /// </summary>
+        /// <param name="read">read size</param>
+        /// <param name="state">state</param>
         private void Completed(int read, PsStateRead state)
         {
             // check size
@@ -166,10 +212,13 @@ namespace PurpleSofa
             Prepare(state);
         }
 
+        /// <summary>
+        ///     Shutdown.
+        /// </summary>
         public override void Shutdown()
         {
-            _closeTokenSource.Cancel();
-            _closeTask.Dispose();
+            // shutdown read
+            if (!_taskClose.IsCanceled) _tokenSourceClose.Cancel();
         }
     }
 }

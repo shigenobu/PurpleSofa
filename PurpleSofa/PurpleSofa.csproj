@@ -1,12 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFrameworks>netcoreapp3.1;net5.0</TargetFrameworks>
+        <TargetFramework>net5.0</TargetFramework>
         <LangVersion>9</LangVersion>
         <Description>Async tcp server and client library.</Description>
         <Authors>Shigenobu Furuta</Authors>
         <PackageId>PurpleSofa</PackageId>
-        <PackageTags>async;tcp;tcp-server;tcp-client</PackageTags>
+        <PackageTags>async;non-blocking;tcp;tcp-server;tcp-client</PackageTags>
         <Nullable>enable</Nullable>
         <Version>0.0.1</Version>
     </PropertyGroup>

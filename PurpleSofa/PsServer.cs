@@ -4,44 +4,77 @@ using System.Net.Sockets;
 
 namespace PurpleSofa
 {
+    /// <summary>
+    ///     Server.
+    /// </summary>
     public class PsServer
     {
+        /// <summary>
+        ///     Callback.
+        /// </summary>
         private readonly PsCallback _callback;
 
-        public string Host { get; set; } = "0.0.0.0";
+        /// <summary>
+        ///     Host.
+        /// </summary>
+        public string Host { get; init; } = "0.0.0.0";
 
-        public int Port { get; set; } = 8710;
+        /// <summary>
+        ///     Port.
+        /// </summary>
+        public int Port { get; init; } = 8710;
 
-        public int Backlog { get; set; } = 1024;
+        /// <summary>
+        ///     Backlog.
+        /// </summary>
+        public int Backlog { get; init; } = 1024;
 
-        public int ReadBufferSize { get; set; } = 2048;
+        /// <summary>
+        ///     ReadBufferSize for read(receive).
+        /// </summary>
+        public int ReadBufferSize { get; init; } = 2048;
 
-        public int ReceiveBufferSize { get; set; } = 1024 * 1024 * 128;
+        /// <summary>
+        ///     ReceiveBufferSize for socket option.
+        /// </summary>
+        public int ReceiveBufferSize { get; init; } = 1024 * 1024 * 128;
 
-        public int Devide { get; set; } = 10;
+        /// <summary>
+        ///     Divide.
+        ///     It's client connections divided number.
+        /// </summary>
+        public int Divide { get; init; } = 10;
 
-        public PsShutdownExecutor ShutdownExecutor { get; set; } = new PsShutdownExecutor();
-
+        /// <summary>
+        ///     Server socket.
+        /// </summary>
         private Socket? _serverSocket;
 
+        /// <summary>
+        ///     Session manager.
+        /// </summary>
         private PsSessionManager? _sessionManager;
         
+        /// <summary>
+        ///     Handler accept.
+        /// </summary>
         private PsHandlerAccept? _handlerAccept;
-        
 
+        /// <summary>
+        ///     Constructor.
+        /// </summary>
+        /// <param name="callback">callback</param>
         public PsServer(PsCallback callback)
         {
             _callback = callback;
         }
 
+        /// <summary>
+        ///     Start
+        /// </summary>
+        /// <exception cref="PsServerException">server error</exception>
         public void Start()
         {
-            // set shutdown executor
-            var shutdown = new PsShutdown(ShutdownExecutor);
-            var domain = AppDomain.CurrentDomain;
-            domain.ProcessExit += shutdown.Shutdown;    // TODO
-            PsLogger.Info($"Register shutdown executor: {ShutdownExecutor.GetType().FullName}");
-            
             try
             {
                 // init
@@ -53,19 +86,19 @@ namespace PurpleSofa
                 }
                 _serverSocket.Bind(new IPEndPoint(IPAddress.Parse(Host), Port));
                 _serverSocket.Listen(Backlog);
-                PsLogger.Info($"Server listening on {Host}:{Port} " +
-                              $"(backlog:{Backlog}, readBufferSize:{ReadBufferSize}, receiveBufferSize:{ReceiveBufferSize}");
                 
                 // manager
-                _sessionManager = new PsSessionManager(Devide, shutdown);
+                _sessionManager = new PsSessionManager(Divide);
                 _sessionManager.StartTimeoutTask();
-                
+
                 // start server
                 _handlerAccept = new PsHandlerAccept(_callback, ReadBufferSize, _sessionManager);
                 _handlerAccept.Prepare(new PsStateAccept
                 {
                     Socket = _serverSocket
                 });
+                PsLogger.Info($"Server listening on {Host}:{Port} " +
+                              $"(backlog:{Backlog}, readBufferSize:{ReadBufferSize}, receiveBufferSize:{ReceiveBufferSize})");
             }
             catch (Exception e)
             {
@@ -74,6 +107,26 @@ namespace PurpleSofa
             }
         }
 
+        /// <summary>
+        ///     Wait for.
+        /// </summary>
+        public void WaitFor()
+        {
+            _handlerAccept?.TaskAccept?.Wait();
+        }
+
+        /// <summary>
+        ///     Get session count.
+        /// </summary>
+        /// <returns>session count</returns>
+        public long GetSessionCount()
+        {
+            return _sessionManager?.GetSessionCount() ?? 0;
+        }
+        
+        /// <summary>
+        ///     Shutdown.
+        /// </summary>
         public void Shutdown()
         {
             // shutdown manager
@@ -82,14 +135,21 @@ namespace PurpleSofa
             // close
             _serverSocket?.Close();
             
-            // shutdown hander
+            // shutdown handler
             _handlerAccept?.Shutdown();
         }
     }
 
+    /// <summary>
+    ///     Server Exception.
+    /// </summary>
     public class PsServerException : Exception
     {
-        public PsServerException(Exception e) : base(e.ToString())
+        /// <summary>
+        ///     Constructor.
+        /// </summary>
+        /// <param name="e">exception</param>
+        internal PsServerException(Exception e) : base(e.ToString())
         {}
     }
 }
