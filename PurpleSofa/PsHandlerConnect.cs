@@ -1,20 +1,24 @@
 using System;
-using System.Net.Sockets;
+using System.Net;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace PurpleSofa
 {
     /// <summary>
-    ///     Handler accept.
+    ///     Handler connect.
     /// </summary>
-    public class PsHandlerAccept : PsHandler<PsStateAccept>
+    public class PsHandlerConnect : PsHandler<PsStateConnect>
     {
         /// <summary>
-        ///     Reset event for accept.
+        ///     Reset event for connect.
         /// </summary>
-        private readonly ManualResetEventSlim _accepted = new(false);
-
+        private readonly ManualResetEventSlim _connected = new(false);
+        
+        /// <summary>
+        ///     Remote endpoint.
+        /// </summary>
+        private readonly IPEndPoint _remoteEndpoint;
+        
         /// <summary>
         ///     Callback.
         /// </summary>
@@ -34,68 +38,45 @@ namespace PurpleSofa
         ///     Handler read.
         /// </summary>
         private readonly PsHandlerRead _handlerRead;
-
-        /// <summary>
-        ///     Cancellation token for accept task.
-        /// </summary>
-        private readonly CancellationTokenSource _tokenSourceAccept;
-        
-        /// <summary>
-        ///     Accept task.
-        /// </summary>
-        public Task? TaskAccept { get; private set; }
         
         /// <summary>
         ///     Constructor.
         /// </summary>
+        /// <param name="remoteEndpoint">remote endpoint</param>
         /// <param name="callback">callback</param>
         /// <param name="readBufferSize">read buffer size</param>
         /// <param name="sessionManager">session manager</param>
-        public PsHandlerAccept(PsCallback callback, int readBufferSize, PsSessionManager sessionManager)
+        public PsHandlerConnect(IPEndPoint remoteEndpoint, PsCallback callback, int readBufferSize, PsSessionManager sessionManager)
         {
+            _remoteEndpoint = remoteEndpoint;
             _callback = callback;
             _readBufferSize = readBufferSize;
             _sessionManager = sessionManager;
             _handlerRead = new PsHandlerRead(_callback, _readBufferSize, _sessionManager);
-            
-            _tokenSourceAccept = new CancellationTokenSource();
         }
-
+        
         /// <summary>
         ///     Prepare.
         /// </summary>
         /// <param name="state">state</param>
-        public override void Prepare(PsStateAccept state)
+        public override void Prepare(PsStateConnect state)
         {
-            TaskAccept = Task.Factory.StartNew(() =>
-            {
-                while (true)
-                {
-                    // check cancel
-                    if (_tokenSourceAccept.Token.IsCancellationRequested)
-                    {
-                        PsLogger.Info($"Cancel accept task: {_tokenSourceAccept.Token.GetHashCode()}");
-                        return;
-                    }
-                
-                    // signal off
-                    _accepted.Reset();
+            // signal off
+            _connected.Reset();
 
-                    try
-                    {
-                        // accept
-                        state.Socket.BeginAccept(Complete, state);
-                    }
-                    catch (Exception e)
-                    {
-                        PsLogger.Debug(() => e);
-                        Failed(state);
-                    }
+            try
+            {
+                // connect
+                state.Socket.BeginConnect(_remoteEndpoint, Complete, state);
+            }
+            catch (Exception e)
+            {
+                PsLogger.Debug(() => e);
+                Failed(state);
+            }
         
-                    // wait until signal on
-                    _accepted.Wait();
-                }
-            }, _tokenSourceAccept.Token, TaskCreationOptions.LongRunning, TaskScheduler.Current);
+            // wait until signal on
+            _connected.Wait();
         }
 
         /// <summary>
@@ -105,23 +86,23 @@ namespace PurpleSofa
         public override void Complete(IAsyncResult result)
         {
             // signal on
-            _accepted.Set();
+            _connected.Set();
             
             // get state
             if (!GetState(result, out var state))
             {
-                PsLogger.Debug(() => $"When accepted, no state result: {result}");
+                PsLogger.Debug(() => $"When connected, no state result: {result}");
                 return;
             }
 
             try
             {
-                // accept
-                Socket clientSocket = state!.Socket.EndAccept(result);
+                // connect
+                state!.Socket.EndConnect(result);
 
                 // callback
-                var session = _sessionManager.Generate(clientSocket);
-                PsLogger.Debug(() => $"Accepted session: {session}");
+                var session = _sessionManager.Generate(state.Socket);
+                PsLogger.Debug(() => $"Connected session: {session}");
                 lock (session)
                 {
                     session.UpdateTimeout();
@@ -131,7 +112,7 @@ namespace PurpleSofa
                 // read
                 PsStateRead stateRead = new PsStateRead()
                 {
-                    Socket = clientSocket,
+                    Socket = state.Socket,
                     Buffer = new byte[_readBufferSize]
                 };
                 _handlerRead.Prepare(stateRead);
@@ -147,9 +128,9 @@ namespace PurpleSofa
         ///     Failed.
         /// </summary>
         /// <param name="state">state</param>
-        public override void Failed(PsStateAccept state)
+        public override void Failed(PsStateConnect state)
         {
-            PsLogger.Debug(() => $"Accept failed: {state}");
+            PsLogger.Debug(() => $"Connect failed: {state}");
         }
 
         /// <summary>
@@ -157,9 +138,6 @@ namespace PurpleSofa
         /// </summary>
         public override void Shutdown()
         {
-            // shutdown accept
-            if (TaskAccept is { IsCanceled: false }) _tokenSourceAccept.Cancel();
-            
             // shutdown read
             _handlerRead.Shutdown();
         }

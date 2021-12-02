@@ -50,7 +50,7 @@ namespace PurpleSofa
             }
             catch (Exception e)
             {
-                PsLogger.Error(e);
+                PsLogger.Debug(() => e);
             }
 
             return default;

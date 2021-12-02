@@ -37,6 +37,11 @@ namespace PurpleSofa
         public static Action<object?>? Transfer;
 
         /// <summary>
+        ///     Lock.
+        /// </summary>
+        private static object _lock = new object();
+
+        /// <summary>
         ///     Error.
         /// </summary>
         /// <param name="message">log message</param>
@@ -100,14 +105,32 @@ namespace PurpleSofa
             builder.Append($"[{context.Recorded}]");
             builder.Append($"[{context.ThreadId}]");
             builder.Append($"[{context.Name}]");
-            builder.Append($"{context.Message}\n");
+            builder.Append($"{context.Message}");
             var log = builder.ToString();
             Transfer?.Invoke(log);
 
-            if (Writer != null)
+            lock (_lock)
             {
-                Writer.Write(log);
-                Writer.Flush();    
+                if (Writer != null)
+                {
+                    Writer.WriteLine(log);
+                    Writer.Flush();    
+                }    
+            }
+        }
+
+        /// <summary>
+        ///     Close logger.
+        /// </summary>
+        public static void Close()
+        {
+            lock (_lock)
+            {
+                if (Writer != null)
+                {
+                    Writer.Close();
+                    Writer = null;
+                }    
             }
         }
     }

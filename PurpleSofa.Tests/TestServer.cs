@@ -16,7 +16,7 @@ namespace PurpleSofa.Tests
         }
 
         [Fact]
-        public void TestSimple()
+        public void TestForever()
         {
             var server = new PsServer(new Callback())
             {
@@ -33,7 +33,7 @@ namespace PurpleSofa.Tests
                 while (true)
                 {
                     PsLogger.Debug($"session count: {server.GetSessionCount()}");
-                    await Task.Delay(5000);    
+                    await Task.Delay(5000); 
                 }
             });
             server.WaitFor();

@@ -137,8 +137,11 @@ namespace PurpleSofa
             if (!IsOpen()) return;
             try
             {
-                _clientSocket.SendTimeout = timeout;
-                _clientSocket.Send(new ArraySegment<byte>(message), SocketFlags.None);
+                lock (this)
+                {
+                    _clientSocket.SendTimeout = timeout;
+                    _clientSocket.Send(new ArraySegment<byte>(message), SocketFlags.None);    
+                }
             }
             catch (Exception e)
             {

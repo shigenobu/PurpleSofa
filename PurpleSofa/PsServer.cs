@@ -1,6 +1,7 @@
 using System;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading;
 
 namespace PurpleSofa
 {
@@ -70,7 +71,7 @@ namespace PurpleSofa
         }
 
         /// <summary>
-        ///     Start
+        ///     Start.
         /// </summary>
         /// <exception cref="PsServerException">server error</exception>
         public void Start()
@@ -129,6 +130,9 @@ namespace PurpleSofa
         /// </summary>
         public void Shutdown()
         {
+            // sleep 3 seconds
+            Thread.Sleep(3000);
+            
             // shutdown manager
             _sessionManager?.ShutdownTimeoutTask();
             

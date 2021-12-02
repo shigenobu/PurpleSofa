@@ -89,7 +89,7 @@ namespace PurpleSofa
                     // check cancel
                     if (_tokenSourceTimeout.Token.IsCancellationRequested)
                     {
-                        PsLogger.Info($"Cancel timeout task: {_tokenSourceTimeout}");
+                        PsLogger.Info($"Cancel timeout task: {_tokenSourceTimeout.Token.GetHashCode()}");
                         return;
                     }
                 

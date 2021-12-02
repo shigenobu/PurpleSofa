@@ -60,7 +60,7 @@ namespace PurpleSofa
                     // check cancel
                     if (_tokenSourceClose.Token.IsCancellationRequested)
                     {
-                        PsLogger.Info($"Cancel close task: {_tokenSourceClose}");
+                        PsLogger.Info($"Cancel close task: {_tokenSourceClose.Token.GetHashCode()}");
                         return;
                     }
                     
@@ -123,6 +123,8 @@ namespace PurpleSofa
             catch (Exception e)
             {
                 PsLogger.Debug(() => e);
+                if (e is ObjectDisposedException) state!.CloseReason = PsCloseReason.PeerClose;
+                if (e is SocketException { SocketErrorCode: SocketError.ConnectionReset }) state!.CloseReason = PsCloseReason.PeerClose; 
                 Failed(state!);
             }
         }
@@ -135,9 +137,6 @@ namespace PurpleSofa
         {
             PsLogger.Debug(() => $"Read failed: {state}");
             
-            // close socket
-            state.Socket.Close();
-            
             // force close
             if (state.CloseReason == PsCloseReason.None)
             {
@@ -148,6 +147,9 @@ namespace PurpleSofa
             if (session == null) return;
             lock (session)
             {
+                // close socket
+                state.Socket.Close();
+                
                 // if never close handler called, true
                 if (!session.CloseHandlerCalled)
                 {
@@ -168,9 +170,6 @@ namespace PurpleSofa
             PsSession? session;
             if (read <= InvalidRead)
             {
-                // close socket
-                state.Socket.Close();
-
                 // callback
                 if (state.CloseReason == PsCloseReason.None)
                 {
@@ -181,6 +180,9 @@ namespace PurpleSofa
                 if (session == null) return;
                 lock (session)
                 {
+                    // close socket
+                    state.Socket.Close();
+                    
                     // if never close handler called, true
                     if (!session.CloseHandlerCalled)
                     {
