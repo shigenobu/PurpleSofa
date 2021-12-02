@@ -9,7 +9,7 @@ namespace PurpleSofa.Tests
         public TestLogger(ITestOutputHelper helper)
         {
             PsLogger.Verbose = true;
-            PsLogger.Transfer = msg => helper.WriteLine(msg?.ToString());
+            // PsLogger.Transfer = msg => helper.WriteLine(msg?.ToString());
         }
 
         [Fact]

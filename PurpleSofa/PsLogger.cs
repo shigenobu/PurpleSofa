@@ -39,7 +39,7 @@ namespace PurpleSofa
         /// <summary>
         ///     Lock.
         /// </summary>
-        private static object _lock = new object();
+        private static readonly object Lock = new object();
 
         /// <summary>
         ///     Error.
@@ -109,7 +109,7 @@ namespace PurpleSofa
             var log = builder.ToString();
             Transfer?.Invoke(log);
 
-            lock (_lock)
+            lock (Lock)
             {
                 if (Writer != null)
                 {
@@ -124,7 +124,7 @@ namespace PurpleSofa
         /// </summary>
         public static void Close()
         {
-            lock (_lock)
+            lock (Lock)
             {
                 if (Writer != null)
                 {

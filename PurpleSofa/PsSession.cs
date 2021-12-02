@@ -63,7 +63,7 @@ namespace PurpleSofa
         /// <summary>
         ///     Self closed.
         /// </summary>
-        internal bool SelfClosed { get; set; }
+        internal bool SelfClosed { get; private set; }
 
         /// <summary>
         ///     Newest.
@@ -74,7 +74,7 @@ namespace PurpleSofa
         ///     Session values.
         /// </summary>
         private Dictionary<string, object>? _values;
-        
+
         /// <summary>
         ///     Constructor.
         /// </summary>
@@ -134,11 +134,12 @@ namespace PurpleSofa
         /// <exception cref="PsSendException">send error</exception>
         public void Send(byte[] message, int timeout = DefaultTimeoutMilliSeconds)
         {
-            if (!IsOpen()) return;
             try
             {
                 lock (this)
                 {
+                    if (!IsOpen()) return;
+                    
                     _clientSocket.SendTimeout = timeout;
                     _clientSocket.Send(new ArraySegment<byte>(message), SocketFlags.None);    
                 }
@@ -158,17 +159,20 @@ namespace PurpleSofa
         /// </summary>
         public void Close()
         {
-            if (!IsOpen()) return;
-            
-            // self closed is set to true
-            SelfClosed = true;
-            
-            // direct into queue
-            CloseQueue?.Add(new PsStateRead()
+            lock (this)
             {
-                Socket = _clientSocket,
-                CloseReason = PsCloseReason.SelfClose
-            });
+                if (!IsOpen()) return;
+                
+                // self closed is set to true
+                SelfClosed = true;
+            
+                // direct into queue
+                CloseQueue?.Add(new PsStateRead()
+                {
+                    Socket = _clientSocket,
+                    CloseReason = PsCloseReason.SelfClose
+                });
+            }
         }
         
         /// <summary>

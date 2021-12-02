@@ -117,14 +117,16 @@ namespace PurpleSofa
             try
             {
                 // read
+                // TODO in short terms many message is received, message is concat with previous message
+                // TODO 短時間に猛烈にメッセージを投げると、メッセージがくっついて受信されてしまうケースがある
                 int read = state!.Socket.EndReceive(result);
                 Completed(read, state);
             }
             catch (Exception e)
             {
                 PsLogger.Debug(() => e);
-                if (e is ObjectDisposedException) state!.CloseReason = PsCloseReason.PeerClose;
-                if (e is SocketException { SocketErrorCode: SocketError.ConnectionReset }) state!.CloseReason = PsCloseReason.PeerClose; 
+                if (e is ObjectDisposedException or SocketException { SocketErrorCode: SocketError.ConnectionReset }) 
+                    state!.CloseReason = PsCloseReason.PeerClose;
                 Failed(state!);
             }
         }

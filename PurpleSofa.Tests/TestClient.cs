@@ -27,7 +27,10 @@ namespace PurpleSofa.Tests
             {
                 tasks.Add(Task.Run(async () =>
                     {
-                        var client = new PsClient(new CallbackClient(), "127.0.0.1", 8710);
+                        var client = new PsClient(new CallbackClient(), "127.0.0.1", 8710)
+                        {
+                            ReadBufferSize = 1024
+                        };
                         client.Connect();
                         await Task.Delay(5);
                         client.Disconnect();
@@ -35,6 +38,8 @@ namespace PurpleSofa.Tests
             }
 
             Task.WaitAll(tasks.ToArray());
+            
+            Thread.Sleep(5000);
             
             server.Shutdown();
             PsLogger.Close();
@@ -49,18 +54,16 @@ namespace PurpleSofa.Tests
             var tasks = new List<Task>();
             for (int i = 0; i < 2; i++)
             {
-                tasks.Add(Task.Run(async () =>
+                tasks.Add(Task.Run(() =>
                 {
                     var client = new PsClient(new CallbackClient(), "127.0.0.1", 8710);
                     client.Connect();
-                    await Task.Delay(5000);
-                    client.Disconnect();
                 }));
             }
 
-            Task.WaitAll(tasks.ToArray());
-            
             server.Shutdown();
+            
+            Thread.Sleep(5000);
             PsLogger.Close();
         }
     }

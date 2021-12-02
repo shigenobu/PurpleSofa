@@ -130,8 +130,8 @@ namespace PurpleSofa
         /// </summary>
         public void Shutdown()
         {
-            // sleep 3 seconds
-            Thread.Sleep(3000);
+            // sleep 1 seconds
+            Thread.Sleep(1000);
             
             // shutdown manager
             _sessionManager?.ShutdownTimeoutTask();
