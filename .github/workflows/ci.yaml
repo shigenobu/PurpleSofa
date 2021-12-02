@@ -21,4 +21,8 @@ jobs:
       - name: Build
         run: dotnet build --no-restore
       - name: Test
-        run: dotnet test --filter "FullyQualifiedName!=PurpleSofa.Tests.TestServer.TestForever"
+        run: dotnet test --filter "FullyQualifiedName!=PurpleSofa.Tests.TestServer.TestForever" --collect:"XPlat Code Coverage"
+      - name: Upload coverage
+        uses: codecov/codecov-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
