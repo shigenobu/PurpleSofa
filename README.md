@@ -60,7 +60,7 @@
 
     public static void Main(string[] args)
     {
-        var client = new PsClient(new CallbackClient(), "127.0.0.1", 8710);
+        var client = new PsClient(new Callback(), "127.0.0.1", 8710);
         client.Connect();
         // ...
         client.Disconnect();
