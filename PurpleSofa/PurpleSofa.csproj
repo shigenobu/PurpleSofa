@@ -7,8 +7,11 @@
         <Authors>Shigenobu Furuta</Authors>
         <PackageId>PurpleSofa</PackageId>
         <PackageTags>async;non-blocking;tcp;tcp-server;tcp-client</PackageTags>
+        <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+        <RepositoryType>git</RepositoryType>
+        <RepositoryUrl>https://github.com/shigenobu/PurpleSofa.git</RepositoryUrl>
         <Nullable>enable</Nullable>
-        <Version>0.0.1</Version>
+        <Version>0.0.2</Version>
     </PropertyGroup>
 
 </Project>
