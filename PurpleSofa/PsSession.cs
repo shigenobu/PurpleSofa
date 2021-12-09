@@ -214,7 +214,7 @@ namespace PurpleSofa
         /// <returns>session id</returns>
         public override string ToString()
         {
-            return _sid;
+            return $"Sid:{_sid}, Local:{LocalEndPoint}, Remote:{RemoteEndPoint}";
         }
     }
 
