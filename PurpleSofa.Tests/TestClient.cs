@@ -80,7 +80,7 @@ namespace PurpleSofa.Tests
 
         public override void OnMessage(PsSession session, byte[] message)
         {
-            PsLogger.Info($"Receive from client: '{message.PxToString()}'.");
+            PsLogger.Info($"Receive from client: '{message.PxToString()}' ({session}).");
             
             int inc = session.GetValue<int>(Key);
             inc++;
@@ -108,14 +108,16 @@ namespace PurpleSofa.Tests
 
         public override void OnMessage(PsSession session, byte[] message)
         {
-            PsLogger.Info($"Receive from server: '{message.PxToString()}'.");
+            PsLogger.Info($"Receive from server: '{message.PxToString()}' ({session}).");
             
             int inc = session.GetValue<int>(Key);
             inc++;
             session.SetValue(Key, inc);
             
+            if (inc > 5) return;
             var reply = $"{inc}";
             session.Send(reply.PxToBytes());
+            
         }
 
         public override void OnClose(PsSession session, PsCloseReason closeReason)

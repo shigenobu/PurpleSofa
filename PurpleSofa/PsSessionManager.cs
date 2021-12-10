@@ -48,11 +48,6 @@ namespace PurpleSofa
         private Task? _taskTimeout;
 
         /// <summary>
-        ///     Task no.
-        /// </summary>
-        private int _taskNo;
-
-        /// <summary>
         ///     Constructor.
         /// </summary>
         /// <param name="divide">divide</param>
@@ -84,6 +79,7 @@ namespace PurpleSofa
             _tokenSourceTimeout = new CancellationTokenSource();
             _taskTimeout = Task.Factory.StartNew(async () =>
             {
+                int taskNo = 0;
                 while (true)
                 {
                     // check cancel
@@ -97,22 +93,22 @@ namespace PurpleSofa
                     await Task.Delay(delay);
                 
                     // increment task no
-                    _taskNo++;
-                    if (_taskNo >= _divide) _taskNo = 0;
+                    taskNo++;
+                    if (taskNo >= _divide) taskNo = 0;
 
                     // timeout
-                    lock (_sessionLocks[_taskNo])
+                    lock (_sessionLocks[taskNo])
                     {
-                        foreach (var pair in _sessions[_taskNo])
+                        foreach (var (socket, psSession) in _sessions[taskNo])
                         {
-                            lock (pair.Value)
+                            lock (psSession)
                             {
                                 // if called close by self is false and timeout is true, true
-                                if (!pair.Value.SelfClosed && pair.Value.IsTimeout())
+                                if (!psSession.SelfClosed && psSession.IsTimeout())
                                 {
                                     CloseQueue.Add(new PsStateRead
                                     {
-                                        Socket = pair.Key,
+                                        Socket = socket,
                                         CloseReason = PsCloseReason.Timeout
                                     });
                                 }
@@ -144,17 +140,17 @@ namespace PurpleSofa
             {
                 lock (_sessionLocks[i])
                 {
-                    foreach (var pair in _sessions[i])
+                    foreach (var (socket, session) in _sessions[i])
                     {
-                        lock (pair.Value)
+                        lock (session)
                         {
                             // if called close by self is false and shutdown handler is not called, true
-                            if (!pair.Value.SelfClosed && !pair.Value.ShutdownHandlerCalled)
+                            if (!session.SelfClosed && !session.ShutdownHandlerCalled)
                             {
-                                pair.Value.ShutdownHandlerCalled = true;
+                                session.ShutdownHandlerCalled = true;
                                 CloseQueue.Add(new PsStateRead
                                 {
-                                    Socket = pair.Key,
+                                    Socket = socket,
                                     CloseReason = PsCloseReason.Shutdown
                                 });
                             }
@@ -194,10 +190,6 @@ namespace PurpleSofa
         internal PsSession Generate(Socket clientSocket)
         {
             int mod = GetMod(clientSocket);
-            if (_sessions[mod].ContainsKey(clientSocket))
-            {
-                return _sessions[mod][clientSocket];
-            }
 
             PsSession? session;
             lock (_sessionLocks[mod])
@@ -226,11 +218,14 @@ namespace PurpleSofa
         internal PsSession? Get(Socket clientSocket)
         {
             int mod = GetMod(clientSocket);
+            
+            PsSession? session;
             lock (_sessionLocks[mod])
             {
-                if (!_sessions[mod].ContainsKey(clientSocket)) return null;
-                return _sessions[mod][clientSocket];
+                if (!TryGet(clientSocket, out session)) return null;
             }
+
+            return session;
         }
 
         /// <summary>
@@ -244,11 +239,13 @@ namespace PurpleSofa
             PsSession? session;
             lock (_sessionLocks[mod])
             {
-                if (_sessions[mod].Remove(clientSocket, out session))
+                if (!_sessions[mod].TryRemove(clientSocket, out session))
                 {
-                    Interlocked.Decrement(ref _sessionCount);
-                    PsLogger.Debug(() => $"By session: {session}");
+                    return null;
                 }
+                
+                Interlocked.Decrement(ref _sessionCount);
+                PsLogger.Debug(() => $"By session: {session}");
             }
 
             return session;
