@@ -17,7 +17,7 @@ namespace PurpleSofa
         ///     Add item to queue.
         /// </summary>
         /// <param name="item">item</param>
-        public void Add(T item)
+        internal void Add(T item)
         {
             _queue.Enqueue(item);
         }
@@ -26,7 +26,7 @@ namespace PurpleSofa
         ///     Get item from queue.
         /// </summary>
         /// <returns>item</returns>
-        public T? Poll()
+        internal T? Poll()
         {
             if (_queue.TryDequeue(out var item))
             {

@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net5.0</TargetFramework>
+        <TargetFrameworks>net5.0;net6.0</TargetFrameworks>
         <LangVersion>9</LangVersion>
         <Description>Async tcp server and client library.</Description>
         <Authors>Shigenobu Furuta</Authors>
@@ -11,7 +11,7 @@
         <RepositoryType>git</RepositoryType>
         <RepositoryUrl>https://github.com/shigenobu/PurpleSofa.git</RepositoryUrl>
         <Nullable>enable</Nullable>
-        <Version>0.0.3</Version>
+        <Version>0.0.4</Version>
     </PropertyGroup>
 
 </Project>
