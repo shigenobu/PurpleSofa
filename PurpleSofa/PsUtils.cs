@@ -18,7 +18,7 @@ namespace PurpleSofa
         /// </summary>
         /// <param name="length">length</param>
         /// <returns>random string</returns>
-        public static string RandomString(int length)
+        internal static string RandomString(int length)
         {
             if (length < 1)
                 return string.Empty;
@@ -42,7 +42,7 @@ namespace PurpleSofa
         /// <param name="func">func</param>
         /// <typeparam name="T">type</typeparam>
         /// <returns>invoke result or null</returns>
-        public static T? OrNull<T>(Func<T> func)
+        internal static T? OrNull<T>(Func<T> func)
         {
             try
             {

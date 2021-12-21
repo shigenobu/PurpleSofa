@@ -6,7 +6,7 @@ namespace PurpleSofa
     ///     Queue.
     /// </summary>
     /// <typeparam name="T">type</typeparam>
-    public class PsQueue<T>
+    internal class PsQueue<T>
     {
         /// <summary>
         ///     Queue.

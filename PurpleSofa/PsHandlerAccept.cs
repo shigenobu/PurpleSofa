@@ -8,7 +8,7 @@ namespace PurpleSofa
     /// <summary>
     ///     Handler accept.
     /// </summary>
-    public class PsHandlerAccept : PsHandler<PsStateAccept>
+    internal class PsHandlerAccept : PsHandler<PsStateAccept>
     {
         /// <summary>
         ///     Reset event for accept.
@@ -51,7 +51,7 @@ namespace PurpleSofa
         /// <param name="callback">callback</param>
         /// <param name="readBufferSize">read buffer size</param>
         /// <param name="sessionManager">session manager</param>
-        public PsHandlerAccept(PsCallback callback, int readBufferSize, PsSessionManager sessionManager)
+        internal PsHandlerAccept(PsCallback callback, int readBufferSize, PsSessionManager sessionManager)
         {
             _callback = callback;
             _readBufferSize = readBufferSize;
@@ -65,7 +65,7 @@ namespace PurpleSofa
         ///     Prepare.
         /// </summary>
         /// <param name="state">state</param>
-        public override void Prepare(PsStateAccept state)
+        internal override void Prepare(PsStateAccept state)
         {
             TaskAccept = Task.Factory.StartNew(() =>
             {
@@ -102,7 +102,7 @@ namespace PurpleSofa
         ///     Complete.
         /// </summary>
         /// <param name="result">async result</param>
-        public override void Complete(IAsyncResult result)
+        internal override void Complete(IAsyncResult result)
         {
             // signal on
             _accepted.Set();
@@ -147,7 +147,7 @@ namespace PurpleSofa
         ///     Failed.
         /// </summary>
         /// <param name="state">state</param>
-        public override void Failed(PsStateAccept state)
+        internal override void Failed(PsStateAccept state)
         {
             PsLogger.Debug(() => $"Accept failed: {state}");
         }
@@ -155,7 +155,7 @@ namespace PurpleSofa
         /// <summary>
         ///     Shutdown.
         /// </summary>
-        public override void Shutdown()
+        internal override void Shutdown()
         {
             // shutdown accept
             if (TaskAccept is { IsCanceled: false }) _tokenSourceAccept.Cancel();

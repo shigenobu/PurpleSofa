@@ -127,7 +127,18 @@ namespace PurpleSofa
         }
 
         /// <summary>
-        ///     Send.
+        ///     Send string.
+        /// </summary>
+        /// <param name="message">message</param>
+        /// <param name="timeout">timeout</param>
+        /// <exception cref="PsSendException">send error</exception>
+        public void Send(string message, int timeout = DefaultTimeoutMilliSeconds)
+        {
+            Send(message.PxToBytes(), timeout);
+        }
+        
+        /// <summary>
+        ///     Send bytes.
         /// </summary>
         /// <param name="message">message</param>
         /// <param name="timeout">timeout</param>

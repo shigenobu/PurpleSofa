@@ -8,7 +8,7 @@ namespace PurpleSofa
     /// <summary>
     ///     Handler read.
     /// </summary>
-    public class PsHandlerRead : PsHandler<PsStateRead>
+    internal class PsHandlerRead : PsHandler<PsStateRead>
     {
         /// <summary>
         ///     Invalid read size.
@@ -46,7 +46,7 @@ namespace PurpleSofa
         /// <param name="callback">callback</param>
         /// <param name="readBufferSize">read buffer size</param>
         /// <param name="sessionManager">session manager</param>
-        public PsHandlerRead(PsCallback callback, int readBufferSize, PsSessionManager sessionManager)
+        internal PsHandlerRead(PsCallback callback, int readBufferSize, PsSessionManager sessionManager)
         {
             _callback = callback;
             _readBufferSize = readBufferSize;
@@ -82,7 +82,7 @@ namespace PurpleSofa
         ///     Prepare.
         /// </summary>
         /// <param name="state">state</param>
-        public override void Prepare(PsStateRead state)
+        internal override void Prepare(PsStateRead state)
         {
             try
             {
@@ -105,7 +105,7 @@ namespace PurpleSofa
         ///     Complete.
         /// </summary>
         /// <param name="result">async result.</param>
-        public override void Complete(IAsyncResult result)
+        internal override void Complete(IAsyncResult result)
         {
             // get state
             if (!GetState(result, out var state))
@@ -135,7 +135,7 @@ namespace PurpleSofa
         ///     Failed.
         /// </summary>
         /// <param name="state">state</param>
-        public override void Failed(PsStateRead state)
+        internal override void Failed(PsStateRead state)
         {
             PsLogger.Debug(() => $"Read failed: {state}");
             
@@ -197,7 +197,7 @@ namespace PurpleSofa
             
             // callback
             session = _sessionManager.Get(state.Socket);
-            PsLogger.Debug(() => $"Read session: {session}");
+            PsLogger.Debug(() => $"Read session: {session}, size:{read}");
             if (session == null) return;
             lock (session)
             {
@@ -219,7 +219,7 @@ namespace PurpleSofa
         /// <summary>
         ///     Shutdown.
         /// </summary>
-        public override void Shutdown()
+        internal override void Shutdown()
         {
             // shutdown read
             if (!_taskClose.IsCanceled) _tokenSourceClose.Cancel();

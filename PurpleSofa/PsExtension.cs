@@ -8,7 +8,7 @@ namespace PurpleSofa
     /// <summary>
     ///     Extenstion.
     /// </summary>
-    public static class PsExtension
+    internal static class PsExtension
     {
         /// <summary>
         ///     Byte[] to utf8 string.
@@ -16,7 +16,7 @@ namespace PurpleSofa
         /// <param name="self">byte array</param>
         /// <returns>utf8 string</returns>
         /// <exception cref="PsExtensionException">error</exception>
-        public static string PxToString(this byte[] self)
+        internal static string PxToString(this byte[] self)
         {
             try
             {
@@ -35,7 +35,7 @@ namespace PurpleSofa
         /// <param name="self">utf8 string</param>
         /// <returns>byte array</returns>
         /// <exception cref="PsExtensionException">error</exception>
-        public static byte[] PxToBytes(this string self)
+        internal static byte[] PxToBytes(this string self)
         {
             try
             {
@@ -53,7 +53,7 @@ namespace PurpleSofa
         /// </summary>
         /// <param name="self">socket</param>
         /// <returns>locale endpoint or null</returns>
-        public static EndPoint? PxSocketLocalEndPoint(this Socket self)
+        internal static EndPoint? PxSocketLocalEndPoint(this Socket self)
         {
             return PsUtils.OrNull(() => self.LocalEndPoint);
         }
@@ -63,7 +63,7 @@ namespace PurpleSofa
         /// </summary>
         /// <param name="self">socket</param>
         /// <returns>remote endpoint or null</returns>
-        public static EndPoint? PxSocketRemoteEndPoint(this Socket self)
+        internal static EndPoint? PxSocketRemoteEndPoint(this Socket self)
         {
             return PsUtils.OrNull(() => self.RemoteEndPoint);
         }
@@ -78,7 +78,7 @@ namespace PurpleSofa
         ///     Constructor.
         /// </summary>
         /// <param name="exception">error</param>
-        public PsExtensionException(Exception exception) : base(exception.ToString())
+        internal PsExtensionException(Exception exception) : base(exception.ToString())
         {
         }
     }

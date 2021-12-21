@@ -3,7 +3,7 @@ namespace PurpleSofa
     /// <summary>
     ///     State connect.
     /// </summary>
-    public class PsStateConnect : PsState
+    internal class PsStateConnect : PsState
     {
         /// <summary>
         ///     To String.

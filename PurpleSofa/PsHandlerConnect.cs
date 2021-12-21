@@ -7,7 +7,7 @@ namespace PurpleSofa
     /// <summary>
     ///     Handler connect.
     /// </summary>
-    public class PsHandlerConnect : PsHandler<PsStateConnect>
+    internal class PsHandlerConnect : PsHandler<PsStateConnect>
     {
         /// <summary>
         ///     Reset event for connect.
@@ -46,7 +46,7 @@ namespace PurpleSofa
         /// <param name="callback">callback</param>
         /// <param name="readBufferSize">read buffer size</param>
         /// <param name="sessionManager">session manager</param>
-        public PsHandlerConnect(IPEndPoint remoteEndpoint, PsCallback callback, int readBufferSize, PsSessionManager sessionManager)
+        internal PsHandlerConnect(IPEndPoint remoteEndpoint, PsCallback callback, int readBufferSize, PsSessionManager sessionManager)
         {
             _remoteEndpoint = remoteEndpoint;
             _callback = callback;
@@ -59,7 +59,7 @@ namespace PurpleSofa
         ///     Prepare.
         /// </summary>
         /// <param name="state">state</param>
-        public override void Prepare(PsStateConnect state)
+        internal override void Prepare(PsStateConnect state)
         {
             // signal off
             _connected.Reset();
@@ -83,7 +83,7 @@ namespace PurpleSofa
         ///     Complete.
         /// </summary>
         /// <param name="result">async result</param>
-        public override void Complete(IAsyncResult result)
+        internal override void Complete(IAsyncResult result)
         {
             // signal on
             _connected.Set();
@@ -128,7 +128,7 @@ namespace PurpleSofa
         ///     Failed.
         /// </summary>
         /// <param name="state">state</param>
-        public override void Failed(PsStateConnect state)
+        internal override void Failed(PsStateConnect state)
         {
             PsLogger.Debug(() => $"Connect failed: {state}");
         }
@@ -136,7 +136,7 @@ namespace PurpleSofa
         /// <summary>
         ///     Shutdown.
         /// </summary>
-        public override void Shutdown()
+        internal override void Shutdown()
         {
             // shutdown read
             _handlerRead.Shutdown();

@@ -3,17 +3,17 @@ namespace PurpleSofa
     /// <summary>
     ///     State read.
     /// </summary>
-    public class PsStateRead : PsState
+    internal class PsStateRead : PsState
     {
         /// <summary>
         ///     Buffer by read.
         /// </summary>
-        public byte[]? Buffer { get; set; }
+        internal byte[]? Buffer { get; set; }
         
         /// <summary>
         ///     Close reason.
         /// </summary>
-        public PsCloseReason CloseReason { get; set; }
+        internal PsCloseReason CloseReason { get; set; }
         
         /// <summary>
         ///     To String.

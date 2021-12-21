@@ -22,26 +22,29 @@
         
         public override void OnOpen(PsSession session)
         {
+            Console.WriteLine($"OnOpen {session}");
             session.SetValue(Key, 0);
             session.ChangeIdleMilliSeconds(5000);
 
             int inc = session.GetValue<int>(Key);
-            session.Send($"On Open inc: {inc}\n".PxToBytes());
+            session.Send($"inc: {inc}");
         }
 
         public override void OnMessage(PsSession session, byte[] message)
         {
+            Console.WriteLine($"OnMessage {session} {Encoding.UTF8.GetString(message)}");
             int inc = session.GetValue<int>(Key);
             inc++;
             session.SetValue(Key, inc);
-            session.Send($"On Message inc: {inc}\n".PxToBytes());
+            session.Send($"inc: {inc}");
             if (inc > 3) session.Close();
         }
 
         public override void OnClose(PsSession session, PsCloseReason closeReason)
         {
             session.ClearValue(Key);
-            PsLogger.Debug($"OnClose {session} {closeReason}");
+            int inc = session.GetValue<int>(Key);
+            Console.WriteLine($"OnClose {session} {closeReason}, inc:{inc}");
         }
     }
 

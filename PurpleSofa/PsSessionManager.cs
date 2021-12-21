@@ -35,7 +35,7 @@ namespace PurpleSofa
         /// <summary>
         ///     Close queue.
         /// </summary>
-        public PsQueue<PsStateRead> CloseQueue { get; }
+        internal PsQueue<PsStateRead> CloseQueue { get; }
 
         /// <summary>
         ///     Cancellation token for timeout task.

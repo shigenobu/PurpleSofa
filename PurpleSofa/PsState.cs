@@ -5,11 +5,11 @@ namespace PurpleSofa
     /// <summary>
     ///     State.
     /// </summary>
-    public class PsState
+    internal class PsState
     {
         /// <summary>
         ///     Socket.
         /// </summary>
-        public Socket Socket { get; init; } = null!;
+        internal Socket Socket { get; init; } = null!;
     }
 }

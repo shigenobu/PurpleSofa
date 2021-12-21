@@ -3,7 +3,7 @@ namespace PurpleSofa
     /// <summary>
     ///     State accept.
     /// </summary>
-    public class PsStateAccept : PsState
+    internal class PsStateAccept : PsState
     {
         /// <summary>
         ///     To String.

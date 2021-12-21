@@ -6,7 +6,7 @@ namespace PurpleSofa
     ///     Handler.
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public abstract class PsHandler<T> where T : PsState
+    internal abstract class PsHandler<T> where T : PsState
     {
         /// <summary>
         ///     Get state.
@@ -25,23 +25,23 @@ namespace PurpleSofa
         ///     Prepare (Accept, Connect or Read)
         /// </summary>
         /// <param name="state">state</param>
-        public abstract void Prepare(T state);
+        internal abstract void Prepare(T state);
         
         /// <summary>
         ///     Complete (Accept, Connect or Read)
         /// </summary>
         /// <param name="result"></param>
-        public abstract void Complete(IAsyncResult result);
+        internal abstract void Complete(IAsyncResult result);
 
         /// <summary>
         ///     Failed.
         /// </summary>
         /// <param name="state">state</param>
-        public abstract void Failed(T state);
+        internal abstract void Failed(T state);
         
         /// <summary>
         ///     Shutdown.
         /// </summary>
-        public abstract void Shutdown();
+        internal abstract void Shutdown();
     }
 }
