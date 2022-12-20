@@ -1,17 +1,16 @@
-namespace PurpleSofa
+namespace PurpleSofa;
+
+/// <summary>
+///     State accept.
+/// </summary>
+internal class PsStateAccept : PsState
 {
     /// <summary>
-    ///     State accept.
+    ///     To String.
     /// </summary>
-    internal class PsStateAccept : PsState
+    /// <returns>socket remote endpoint</returns>
+    public override string ToString()
     {
-        /// <summary>
-        ///     To String.
-        /// </summary>
-        /// <returns>socket remote endpoint</returns>
-        public override string ToString()
-        {
-            return $"Socket: {Socket.PxSocketRemoteEndPoint()}";
-        }
+        return $"Socket: {Socket.PxSocketRemoteEndPoint()}";
     }
 }

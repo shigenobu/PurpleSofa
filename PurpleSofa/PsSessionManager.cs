@@ -5,259 +5,238 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace PurpleSofa
+namespace PurpleSofa;
+
+/// <summary>
+///     Session manager.
+/// </summary>
+public class PsSessionManager
 {
     /// <summary>
-    ///     Session manager.
+    ///     Divide.
     /// </summary>
-    public class PsSessionManager
+    private readonly int _divide;
+
+    /// <summary>
+    ///     Session locks.
+    /// </summary>
+    private readonly List<object> _sessionLocks;
+
+    /// <summary>
+    ///     Sessions.
+    /// </summary>
+    private readonly List<ConcurrentDictionary<Socket, PsSession>> _sessions;
+
+    /// <summary>
+    ///     Session count.
+    /// </summary>
+    private long _sessionCount;
+
+    /// <summary>
+    ///     Timeout task.
+    /// </summary>
+    private Task? _taskTimeout;
+
+    /// <summary>
+    ///     Cancellation token for timeout task.
+    /// </summary>
+    private CancellationTokenSource? _tokenSourceTimeout;
+
+    /// <summary>
+    ///     Constructor.
+    /// </summary>
+    /// <param name="divide">divide</param>
+    internal PsSessionManager(int divide)
     {
-        /// <summary>
-        ///     Divide.
-        /// </summary>
-        private readonly int _divide;
-        
-        /// <summary>
-        ///     Session locks.
-        /// </summary>
-        private readonly List<object> _sessionLocks;
+        _divide = divide;
 
-        /// <summary>
-        ///     Sessions.
-        /// </summary>
-        private readonly List<ConcurrentDictionary<Socket, PsSession>> _sessions;
+        _sessionLocks = new List<object>(divide);
+        for (var i = 0; i < divide; i++) _sessionLocks.Add(new object());
 
-        /// <summary>
-        ///     Session count.
-        /// </summary>
-        private long _sessionCount;
+        _sessions = new List<ConcurrentDictionary<Socket, PsSession>>(divide);
+        for (var i = 0; i < divide; i++) _sessions.Add(new ConcurrentDictionary<Socket, PsSession>());
 
-        /// <summary>
-        ///     Close queue.
-        /// </summary>
-        internal PsQueue<PsStateRead> CloseQueue { get; }
+        CloseQueue = new PsQueue<PsStateRead>();
+    }
 
-        /// <summary>
-        ///     Cancellation token for timeout task.
-        /// </summary>
-        private CancellationTokenSource? _tokenSourceTimeout;
-        
-        /// <summary>
-        ///     Timeout task.
-        /// </summary>
-        private Task? _taskTimeout;
+    /// <summary>
+    ///     Close queue.
+    /// </summary>
+    internal PsQueue<PsStateRead> CloseQueue { get; }
 
-        /// <summary>
-        ///     Constructor.
-        /// </summary>
-        /// <param name="divide">divide</param>
-        internal PsSessionManager(int divide)
+    /// <summary>
+    ///     Start timeout task.
+    /// </summary>
+    internal void StartTimeoutTask()
+    {
+        var delay = 1000 / _divide;
+        _tokenSourceTimeout = new CancellationTokenSource();
+        _taskTimeout = Task.Factory.StartNew(async () =>
         {
-            _divide = divide;
-            
-            _sessionLocks = new List<object>(divide);
-            for (int i = 0; i < divide; i++)
+            var taskNo = 0;
+            while (true)
             {
-                _sessionLocks.Add(new object());
-            }
-            
-            _sessions = new List<ConcurrentDictionary<Socket, PsSession>>(divide);
-            for (int i = 0; i < divide; i++)
-            {
-                _sessions.Add(new ConcurrentDictionary<Socket, PsSession>());
-            }
-
-            CloseQueue = new PsQueue<PsStateRead>();
-        }
-
-        /// <summary>
-        ///     Start timeout task.
-        /// </summary>
-        internal void StartTimeoutTask()
-        {
-            var delay = 1000 / _divide;
-            _tokenSourceTimeout = new CancellationTokenSource();
-            _taskTimeout = Task.Factory.StartNew(async () =>
-            {
-                int taskNo = 0;
-                while (true)
+                // check cancel
+                if (_tokenSourceTimeout.Token.IsCancellationRequested)
                 {
-                    // check cancel
-                    if (_tokenSourceTimeout.Token.IsCancellationRequested)
-                    {
-                        PsLogger.Info($"Cancel timeout task: {_tokenSourceTimeout.Token.GetHashCode()}");
-                        return;
-                    }
-                
-                    // delay
-                    await Task.Delay(delay);
-                
-                    // increment task no
-                    taskNo++;
-                    if (taskNo >= _divide) taskNo = 0;
-
-                    // timeout
-                    lock (_sessionLocks[taskNo])
-                    {
-                        foreach (var (socket, psSession) in _sessions[taskNo])
-                        {
-                            lock (psSession)
-                            {
-                                // if called close by self is false and timeout is true, true
-                                if (!psSession.SelfClosed && psSession.IsTimeout())
-                                {
-                                    CloseQueue.Add(new PsStateRead
-                                    {
-                                        Socket = socket,
-                                        CloseReason = PsCloseReason.Timeout
-                                    });
-                                }
-                            }
-                        }
-                    }
+                    PsLogger.Info($"Cancel timeout task: {_tokenSourceTimeout.Token.GetHashCode()}");
+                    return;
                 }
-            },  _tokenSourceTimeout.Token, TaskCreationOptions.LongRunning, TaskScheduler.Current);
-        }
 
-        /// <summary>
-        ///     Shutdown timeout task.
-        /// </summary>
-        internal void ShutdownTimeoutTask()
-        {
-            if (_taskTimeout == null) return;
-            if (_tokenSourceTimeout == null) return;
-            if (_taskTimeout.IsCanceled)
-            {
-                return;
-            }
-            
-            // cancel
-            _tokenSourceTimeout.Cancel();
-            
-            // shutdown all sessions
-            PsLogger.Info($"Closing connections at shutdown");
-            for (int i = 0; i < _divide; i++)
-            {
-                lock (_sessionLocks[i])
+                // delay
+                await Task.Delay(delay);
+
+                // increment task no
+                taskNo++;
+                if (taskNo >= _divide) taskNo = 0;
+
+                // timeout
+                lock (_sessionLocks[taskNo])
                 {
-                    foreach (var (socket, session) in _sessions[i])
-                    {
-                        lock (session)
+                    foreach (var (socket, psSession) in _sessions[taskNo])
+                        lock (psSession)
                         {
-                            // if called close by self is false and shutdown handler is not called, true
-                            if (!session.SelfClosed && !session.ShutdownHandlerCalled)
-                            {
-                                session.ShutdownHandlerCalled = true;
+                            // if called close by self is false and timeout is true, true
+                            if (!psSession.SelfClosed && psSession.IsTimeout())
                                 CloseQueue.Add(new PsStateRead
                                 {
                                     Socket = socket,
-                                    CloseReason = PsCloseReason.Shutdown
+                                    CloseReason = PsCloseReason.Timeout
                                 });
-                            }
+                        }
+                }
+            }
+        }, _tokenSourceTimeout.Token, TaskCreationOptions.LongRunning, TaskScheduler.Current);
+    }
+
+    /// <summary>
+    ///     Shutdown timeout task.
+    /// </summary>
+    internal void ShutdownTimeoutTask()
+    {
+        if (_taskTimeout == null) return;
+        if (_tokenSourceTimeout == null) return;
+        if (_taskTimeout.IsCanceled) return;
+
+        // cancel
+        _tokenSourceTimeout.Cancel();
+
+        // shutdown all sessions
+        PsLogger.Info("Closing connections at shutdown");
+        for (var i = 0; i < _divide; i++)
+            lock (_sessionLocks[i])
+            {
+                foreach (var (socket, session) in _sessions[i])
+                    lock (session)
+                    {
+                        // if called close by self is false and shutdown handler is not called, true
+                        if (!session.SelfClosed && !session.ShutdownHandlerCalled)
+                        {
+                            session.ShutdownHandlerCalled = true;
+                            CloseQueue.Add(new PsStateRead
+                            {
+                                Socket = socket,
+                                CloseReason = PsCloseReason.Shutdown
+                            });
                         }
                     }
-                }
             }
-        }
-        
-        /// <summary>
-        ///     Get mod.
-        /// </summary>
-        /// <param name="s">socket</param>
-        /// <returns>mod</returns>
-        private int GetMod(Socket s)
-        {
-            return Math.Abs(s.GetHashCode() % _divide);
-        }
+    }
 
-        /// <summary>
-        ///     Try get session.
-        /// </summary>
-        /// <param name="clientSocket">socket</param>
-        /// <param name="session">session</param>
-        /// <returns>if get session, return true</returns>
-        private bool TryGet(Socket clientSocket, out PsSession? session)
-        {
-            int mod = GetMod(clientSocket);
-            return _sessions[mod].TryGetValue(clientSocket, out session);
-        }
-        
-        /// <summary>
-        ///     Generate session.
-        /// </summary>
-        /// <param name="clientSocket">socket</param>
-        /// <returns>session</returns>
-        internal PsSession Generate(Socket clientSocket)
-        {
-            int mod = GetMod(clientSocket);
+    /// <summary>
+    ///     Get mod.
+    /// </summary>
+    /// <param name="s">socket</param>
+    /// <returns>mod</returns>
+    private int GetMod(Socket s)
+    {
+        return Math.Abs(s.GetHashCode() % _divide);
+    }
 
-            PsSession? session;
-            lock (_sessionLocks[mod])
+    /// <summary>
+    ///     Try get session.
+    /// </summary>
+    /// <param name="clientSocket">socket</param>
+    /// <param name="session">session</param>
+    /// <returns>if get session, return true</returns>
+    private bool TryGet(Socket clientSocket, out PsSession? session)
+    {
+        var mod = GetMod(clientSocket);
+        return _sessions[mod].TryGetValue(clientSocket, out session);
+    }
+
+    /// <summary>
+    ///     Generate session.
+    /// </summary>
+    /// <param name="clientSocket">socket</param>
+    /// <returns>session</returns>
+    internal PsSession Generate(Socket clientSocket)
+    {
+        var mod = GetMod(clientSocket);
+
+        PsSession? session;
+        lock (_sessionLocks[mod])
+        {
+            if (!TryGet(clientSocket, out session))
             {
-                if (!TryGet(clientSocket, out session))
+                var tmpSession = new PsSession(clientSocket);
+                session = _sessions[mod].GetOrAdd(clientSocket, tmpSession);
+                session.CloseQueue = CloseQueue;
+                if (tmpSession == session)
                 {
-                    var tmpSession = new PsSession(clientSocket);
-                    session = _sessions[mod].GetOrAdd(clientSocket, tmpSession);
-                    session.CloseQueue = CloseQueue;
-                    if (tmpSession == session)
-                    {
-                        Interlocked.Increment(ref _sessionCount);
-                        PsLogger.Debug(() => $"Generate session: {session}");
-                    }
+                    Interlocked.Increment(ref _sessionCount);
+                    PsLogger.Debug(() => $"Generate session: {session}");
                 }
             }
-
-            return session!;
         }
 
-        /// <summary>
-        ///     Get session.
-        /// </summary>
-        /// <param name="clientSocket">socket</param>
-        /// <returns>session or null</returns>
-        internal PsSession? Get(Socket clientSocket)
+        return session!;
+    }
+
+    /// <summary>
+    ///     Get session.
+    /// </summary>
+    /// <param name="clientSocket">socket</param>
+    /// <returns>session or null</returns>
+    internal PsSession? Get(Socket clientSocket)
+    {
+        var mod = GetMod(clientSocket);
+
+        PsSession? session;
+        lock (_sessionLocks[mod])
         {
-            int mod = GetMod(clientSocket);
-            
-            PsSession? session;
-            lock (_sessionLocks[mod])
-            {
-                if (!TryGet(clientSocket, out session)) return null;
-            }
-
-            return session;
+            if (!TryGet(clientSocket, out session)) return null;
         }
 
-        /// <summary>
-        ///     Remove session.
-        /// </summary>
-        /// <param name="clientSocket">socket</param>
-        /// <returns>removed session or null</returns>
-        internal PsSession? By(Socket clientSocket)
+        return session;
+    }
+
+    /// <summary>
+    ///     Remove session.
+    /// </summary>
+    /// <param name="clientSocket">socket</param>
+    /// <returns>removed session or null</returns>
+    internal PsSession? By(Socket clientSocket)
+    {
+        var mod = GetMod(clientSocket);
+        PsSession? session;
+        lock (_sessionLocks[mod])
         {
-            int mod = GetMod(clientSocket);
-            PsSession? session;
-            lock (_sessionLocks[mod])
-            {
-                if (!_sessions[mod].TryRemove(clientSocket, out session))
-                {
-                    return null;
-                }
-                
-                Interlocked.Decrement(ref _sessionCount);
-                PsLogger.Debug(() => $"By session: {session}");
-            }
+            if (!_sessions[mod].TryRemove(clientSocket, out session)) return null;
 
-            return session;
+            Interlocked.Decrement(ref _sessionCount);
+            PsLogger.Debug(() => $"By session: {session}");
         }
 
-        /// <summary>
-        ///     Get session count.
-        /// </summary>
-        /// <returns>session count</returns>
-        public long GetSessionCount()
-        {
-            return Interlocked.Read(ref _sessionCount);
-        }
+        return session;
+    }
+
+    /// <summary>
+    ///     Get session count.
+    /// </summary>
+    /// <returns>session count</returns>
+    public long GetSessionCount()
+    {
+        return Interlocked.Read(ref _sessionCount);
     }
 }

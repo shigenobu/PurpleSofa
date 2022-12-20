@@ -1,17 +1,16 @@
-namespace PurpleSofa
+namespace PurpleSofa;
+
+/// <summary>
+///     State connect.
+/// </summary>
+internal class PsStateConnect : PsState
 {
     /// <summary>
-    ///     State connect.
+    ///     To String.
     /// </summary>
-    internal class PsStateConnect : PsState
+    /// <returns>socket local endpoint</returns>
+    public override string ToString()
     {
-        /// <summary>
-        ///     To String.
-        /// </summary>
-        /// <returns>socket local endpoint</returns>
-        public override string ToString()
-        {
-            return $"Socket: {Socket.PxSocketLocalEndPoint()}";
-        }
+        return $"Socket: {Socket.PxSocketLocalEndPoint()}";
     }
 }
