@@ -25,6 +25,11 @@ public class PsClient
     private readonly int _port;
 
     /// <summary>
+    ///     Address family.
+    /// </summary>
+    private readonly PsSocketAddressFamily _socketAddressFamily;
+
+    /// <summary>
     ///     Server socket.
     /// </summary>
     private Socket? _clientSocket;
@@ -45,9 +50,21 @@ public class PsClient
     /// <param name="callback">callback</param>
     /// <param name="host">host</param>
     /// <param name="port">port</param>
-    public PsClient(PsCallback callback, string host, int port)
+    public PsClient(PsCallback callback, string host, int port) : this(callback, PsSocketAddressFamily.Ipv4, host, port)
+    {
+    }
+
+    /// <summary>
+    ///     Constructor.
+    /// </summary>
+    /// <param name="callback">callback</param>
+    /// <param name="socketAddressFamily">address family</param>
+    /// <param name="host">host</param>
+    /// <param name="port">port</param>
+    public PsClient(PsCallback callback, PsSocketAddressFamily socketAddressFamily, string host, int port)
     {
         _callback = callback;
+        _socketAddressFamily = socketAddressFamily;
         _host = host;
         _port = port;
     }
@@ -66,7 +83,13 @@ public class PsClient
         try
         {
             // init
-            _clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            _clientSocket = new Socket(PsSocketAddressFamilyResolver.Resolve(_socketAddressFamily), SocketType.Stream,
+                ProtocolType.Tcp);
+            if (_socketAddressFamily == PsSocketAddressFamily.Ipv6)
+            {
+                _clientSocket.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, false);
+                PsLogger.Info("Ipv4 socket is treated as ipv6 socket");
+            }
 
             // manager
             _sessionManager = new PsSessionManager(1);

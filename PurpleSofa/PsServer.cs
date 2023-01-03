@@ -11,6 +11,16 @@ namespace PurpleSofa;
 public class PsServer
 {
     /// <summary>
+    ///     Default ip v4 host.
+    /// </summary>
+    private const string DefaultIpv4Host = "0.0.0.0";
+
+    /// <summary>
+    ///     Default ip v6 host.
+    /// </summary>
+    private const string DefaultIpv6Host = "::";
+
+    /// <summary>
     ///     Callback.
     /// </summary>
     private readonly PsCallback _callback;
@@ -40,9 +50,14 @@ public class PsServer
     }
 
     /// <summary>
+    ///     Address family, default ipv4.
+    /// </summary>
+    public PsSocketAddressFamily SocketAddressFamily { get; init; } = PsSocketAddressFamily.Ipv4;
+
+    /// <summary>
     ///     Host.
     /// </summary>
-    public string Host { get; init; } = "0.0.0.0";
+    public string Host { get; set; } = DefaultIpv4Host;
 
     /// <summary>
     ///     Port.
@@ -78,9 +93,25 @@ public class PsServer
     {
         try
         {
+            // check v6
+            if (SocketAddressFamily == PsSocketAddressFamily.Ipv6 &&
+                IPAddress.Parse(Host).AddressFamily == AddressFamily.InterNetwork &&
+                Host.Equals(DefaultIpv4Host))
+            {
+                Host = DefaultIpv6Host;
+                PsLogger.Info($"Change host from '{DefaultIpv4Host}' to '{DefaultIpv6Host}', so ipv6 is adapted");
+            }
+
             // init
-            _serverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            _serverSocket = new Socket(PsSocketAddressFamilyResolver.Resolve(SocketAddressFamily), SocketType.Stream,
+                ProtocolType.Tcp);
             _serverSocket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+            if (SocketAddressFamily == PsSocketAddressFamily.Ipv6)
+            {
+                _serverSocket.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, false);
+                PsLogger.Info("Ipv4 socket is treated as ipv6 socket");
+            }
+
             if (ReceiveBufferSize > 0)
                 _serverSocket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveBuffer,
                     ReceiveBufferSize);

@@ -48,7 +48,7 @@
         }
     }
 
-### for server
+### for server (ip v4)
 
     public static void Main(string[] args)
     {
@@ -59,7 +59,7 @@
         // server.Shutdown();
     }
 
-### for client
+### for client (ip v4)
 
     public static void Main(string[] args)
     {
@@ -68,3 +68,35 @@
         // ...
         client.Disconnect();
     }
+
+### for server (ip v6)
+
+    public static void Main(string[] args)
+    {
+        var server = new PsServer(new Callback())
+        {
+            SocketAddressFamily = PsSocketAddressFamily.Ipv6
+        };
+        server.Start();
+        server.WaitFor();
+        // --- another thread
+        // server.Shutdown();
+    }
+
+* Ipv4 socket is treated as ipv6 socket.
+* If host address `0.0.0.0`, changed to `::`.
+
+### for client (ip v6)
+
+    public static void Main(string[] args)
+    {
+        var client = new PsClient(new Callback(), PsSocketAddressFamily.Ipv6, "::1", 8710);
+        // Below is no problem
+        // var client = new PsClient(new Callback(), "127.0.0.1", 8710);
+        client.Connect();
+        // ...
+        client.Disconnect();
+    }
+
+* Ipv4 socket is treated as ipv6 socket.
+* If server is listening on ipv6, client is enable to connect to server like v4.

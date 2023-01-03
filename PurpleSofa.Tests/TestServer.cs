@@ -20,6 +20,7 @@ namespace PurpleSofa.Tests
         {
             var server = new PsServer(new Callback())
             {
+                SocketAddressFamily = PsSocketAddressFamily.Ipv6,
                 Host = "0.0.0.0",
                 Port = 8710,
                 ReadBufferSize = 1024,
