@@ -1,7 +1,5 @@
 using System;
 using System.Net.Sockets;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace PurpleSofa;
 
@@ -13,7 +11,7 @@ internal class PsHandlerRead : PsHandler<PsStateRead>
     /// <summary>
     ///     Invalid read size.
     /// </summary>
-    private const int InvalidRead = 0;
+    internal const int InvalidRead = 0;
 
     /// <summary>
     ///     Callback.
@@ -31,16 +29,6 @@ internal class PsHandlerRead : PsHandler<PsStateRead>
     private readonly PsSessionManager _sessionManager;
 
     /// <summary>
-    ///     Close task.
-    /// </summary>
-    private readonly Task _taskClose;
-
-    /// <summary>
-    ///     Cancellation token for close task.
-    /// </summary>
-    private readonly CancellationTokenSource _tokenSourceClose;
-
-    /// <summary>
     ///     Constructor.
     /// </summary>
     /// <param name="callback">callback</param>
@@ -51,29 +39,7 @@ internal class PsHandlerRead : PsHandler<PsStateRead>
         _callback = callback;
         _readBufferSize = readBufferSize;
         _sessionManager = sessionManager;
-
-        _tokenSourceClose = new CancellationTokenSource();
-        _taskClose = Task.Factory.StartNew(() =>
-        {
-            while (true)
-            {
-                // check cancel
-                if (_tokenSourceClose.Token.IsCancellationRequested)
-                {
-                    PsLogger.Info($"Cancel close task: {_tokenSourceClose.Token.GetHashCode()}");
-                    return;
-                }
-
-                // read from queue
-                PsStateRead? stateRead;
-                if ((stateRead = sessionManager.CloseQueue.Poll()) != null)
-                    new Task(state =>
-                    {
-                        PsLogger.Debug(() => $"Close state: {state}");
-                        Completed(InvalidRead, (PsStateRead) state!);
-                    }, stateRead).Start();
-            }
-        }, _tokenSourceClose.Token, TaskCreationOptions.LongRunning, TaskScheduler.Current);
+        _sessionManager.StartCloseTask(Completed);
     }
 
     /// <summary>
@@ -215,6 +181,6 @@ internal class PsHandlerRead : PsHandler<PsStateRead>
     internal override void Shutdown()
     {
         // shutdown read
-        if (!_taskClose.IsCanceled) _tokenSourceClose.Cancel();
+        _sessionManager.ShutdownCloseTask();
     }
 }

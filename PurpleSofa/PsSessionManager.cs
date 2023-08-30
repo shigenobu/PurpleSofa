@@ -13,6 +13,11 @@ namespace PurpleSofa;
 public class PsSessionManager
 {
     /// <summary>
+    ///     Close queue.
+    /// </summary>
+    private readonly PsQueue<PsStateRead> _closeQueue;
+
+    /// <summary>
     ///     Divide.
     /// </summary>
     private readonly int _divide;
@@ -33,9 +38,19 @@ public class PsSessionManager
     private long _sessionCount;
 
     /// <summary>
+    ///     Close task.
+    /// </summary>
+    private Task? _taskClose;
+
+    /// <summary>
     ///     Timeout task.
     /// </summary>
     private Task? _taskTimeout;
+
+    /// <summary>
+    ///     Cancellation token for close task.
+    /// </summary>
+    private CancellationTokenSource? _tokenSourceClose;
 
     /// <summary>
     ///     Cancellation token for timeout task.
@@ -56,19 +71,17 @@ public class PsSessionManager
         _sessions = new List<ConcurrentDictionary<Socket, PsSession>>(divide);
         for (var i = 0; i < divide; i++) _sessions.Add(new ConcurrentDictionary<Socket, PsSession>());
 
-        CloseQueue = new PsQueue<PsStateRead>();
+        _closeQueue = new PsQueue<PsStateRead>();
     }
-
-    /// <summary>
-    ///     Close queue.
-    /// </summary>
-    internal PsQueue<PsStateRead> CloseQueue { get; }
 
     /// <summary>
     ///     Start timeout task.
     /// </summary>
     internal void StartTimeoutTask()
     {
+        // run once
+        if (_taskTimeout != null) return;
+
         var delay = 1000 / _divide;
         _tokenSourceTimeout = new CancellationTokenSource();
         _taskTimeout = Task.Factory.StartNew(async () =>
@@ -98,7 +111,7 @@ public class PsSessionManager
                         {
                             // if called close by self is false and timeout is true, true
                             if (!psSession.SelfClosed && psSession.IsTimeout())
-                                CloseQueue.Add(new PsStateRead
+                                _closeQueue.Add(new PsStateRead
                                 {
                                     Socket = socket,
                                     CloseReason = PsCloseReason.Timeout
@@ -120,6 +133,8 @@ public class PsSessionManager
 
         // cancel
         _tokenSourceTimeout.Cancel();
+        _taskTimeout = null;
+        _tokenSourceTimeout = null;
 
         // shutdown all sessions
         PsLogger.Info("Closing connections at shutdown");
@@ -133,7 +148,7 @@ public class PsSessionManager
                         if (!session.SelfClosed && !session.ShutdownHandlerCalled)
                         {
                             session.ShutdownHandlerCalled = true;
-                            CloseQueue.Add(new PsStateRead
+                            _closeQueue.Add(new PsStateRead
                             {
                                 Socket = socket,
                                 CloseReason = PsCloseReason.Shutdown
@@ -141,6 +156,55 @@ public class PsSessionManager
                         }
                     }
             }
+    }
+
+    /// <summary>
+    ///     Start close task.
+    /// </summary>
+    /// <param name="completed">completed action</param>
+    internal void StartCloseTask(Action<int, PsStateRead> completed)
+    {
+        // run once
+        if (_taskClose != null) return;
+
+        _tokenSourceClose = new CancellationTokenSource();
+        _taskClose = Task.Factory.StartNew(() =>
+        {
+            while (true)
+            {
+                // check cancel
+                if (_tokenSourceClose.Token.IsCancellationRequested)
+                {
+                    PsLogger.Info($"Cancel close task: {_tokenSourceClose.Token.GetHashCode()}");
+                    return;
+                }
+
+                // read from queue
+                PsStateRead? stateRead;
+                // ReSharper disable once InconsistentlySynchronizedField
+                if ((stateRead = _closeQueue.Poll()) != null)
+                    new Task(state =>
+                    {
+                        PsLogger.Debug(() => $"Close state: {state}");
+                        completed(PsHandlerRead.InvalidRead, (PsStateRead) state!);
+                    }, stateRead).Start();
+            }
+        }, _tokenSourceClose.Token, TaskCreationOptions.LongRunning, TaskScheduler.Current);
+    }
+
+    /// <summary>
+    ///     Shutdown close task.
+    /// </summary>
+    internal void ShutdownCloseTask()
+    {
+        if (_taskClose == null) return;
+        if (_tokenSourceClose == null) return;
+        if (_taskClose.IsCanceled) return;
+
+        // cancel
+        _tokenSourceClose.Cancel();
+        _taskClose = null;
+        _tokenSourceClose = null;
     }
 
     /// <summary>
@@ -181,7 +245,7 @@ public class PsSessionManager
             {
                 var tmpSession = new PsSession(clientSocket);
                 session = _sessions[mod].GetOrAdd(clientSocket, tmpSession);
-                session.CloseQueue = CloseQueue;
+                session.CloseQueue = _closeQueue;
                 if (tmpSession == session)
                 {
                     Interlocked.Increment(ref _sessionCount);
