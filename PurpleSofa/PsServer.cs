@@ -166,11 +166,11 @@ public class PsServer
         // shutdown timeout
         _sessionManager?.ShutdownTimeoutTask();
 
-        // close
-        _serverSocket?.Close();
-
         // shutdown handler
         _handlerAccept?.Shutdown();
+
+        // close
+        _serverSocket?.Close();
     }
 }
 

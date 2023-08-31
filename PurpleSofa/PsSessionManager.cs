@@ -86,6 +86,8 @@ public class PsSessionManager
         _tokenSourceTimeout = new CancellationTokenSource();
         _taskTimeout = Task.Factory.StartNew(async () =>
         {
+            PsLogger.Info($"Start timeout task -> divide: {_divide}");
+
             var taskNo = 0;
             while (true)
             {
@@ -156,6 +158,8 @@ public class PsSessionManager
                         }
                     }
             }
+
+        PsLogger.Info($"Shutdown timeout task -> divide: {_divide}");
     }
 
     /// <summary>
@@ -170,6 +174,8 @@ public class PsSessionManager
         _tokenSourceClose = new CancellationTokenSource();
         _taskClose = Task.Factory.StartNew(() =>
         {
+            PsLogger.Info("Start close task");
+
             while (true)
             {
                 // check cancel
@@ -205,6 +211,8 @@ public class PsSessionManager
         _tokenSourceClose.Cancel();
         _taskClose = null;
         _tokenSourceClose = null;
+
+        PsLogger.Info("Shutdown close task");
     }
 
     /// <summary>

@@ -117,11 +117,11 @@ public class PsClient
     /// </summary>
     public void Disconnect()
     {
-        // shutdown timeout
-        _sessionManager?.ShutdownTimeoutTask();
-
         // close
         _clientSocket?.Close();
+
+        // shutdown timeout
+        _sessionManager?.ShutdownTimeoutTask();
 
         // shutdown handler
         _handlerConnect?.Shutdown();
