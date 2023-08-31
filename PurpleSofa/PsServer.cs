@@ -163,7 +163,7 @@ public class PsServer
         // sleep 1 seconds
         Thread.Sleep(1000);
 
-        // shutdown manager
+        // shutdown timeout
         _sessionManager?.ShutdownTimeoutTask();
 
         // close

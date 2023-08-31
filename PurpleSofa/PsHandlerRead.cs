@@ -180,7 +180,7 @@ internal class PsHandlerRead : PsHandler<PsStateRead>
     /// </summary>
     internal override void Shutdown()
     {
-        // shutdown read
+        // shutdown close
         _sessionManager.ShutdownCloseTask();
     }
 }

@@ -45,7 +45,7 @@ public class PsClient
     private PsSessionManager? _sessionManager;
 
     /// <summary>
-    ///     Constructor.
+    ///     Constructor for ipv4.
     /// </summary>
     /// <param name="callback">callback</param>
     /// <param name="host">host</param>
@@ -55,7 +55,7 @@ public class PsClient
     }
 
     /// <summary>
-    ///     Constructor.
+    ///     Constructor for ipv4 or ipv6.
     /// </summary>
     /// <param name="callback">callback</param>
     /// <param name="socketAddressFamily">address family</param>
@@ -117,7 +117,7 @@ public class PsClient
     /// </summary>
     public void Disconnect()
     {
-        // shutdown manager
+        // shutdown timeout
         _sessionManager?.ShutdownTimeoutTask();
 
         // close
