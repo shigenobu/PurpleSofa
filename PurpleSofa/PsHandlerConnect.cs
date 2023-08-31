@@ -1,5 +1,4 @@
 using System;
-using System.Net;
 using System.Threading;
 
 namespace PurpleSofa;
@@ -30,11 +29,6 @@ internal class PsHandlerConnect : PsHandler<PsStateConnect>
     private readonly int _readBufferSize;
 
     /// <summary>
-    ///     Remote endpoint.
-    /// </summary>
-    private readonly IPEndPoint _remoteEndpoint;
-
-    /// <summary>
     ///     Session manager.
     /// </summary>
     private readonly PsSessionManager _sessionManager;
@@ -42,14 +36,12 @@ internal class PsHandlerConnect : PsHandler<PsStateConnect>
     /// <summary>
     ///     Constructor.
     /// </summary>
-    /// <param name="remoteEndpoint">remote endpoint</param>
     /// <param name="callback">callback</param>
     /// <param name="readBufferSize">read buffer size</param>
     /// <param name="sessionManager">session manager</param>
-    internal PsHandlerConnect(IPEndPoint remoteEndpoint, PsCallback callback, int readBufferSize,
+    internal PsHandlerConnect(PsCallback callback, int readBufferSize,
         PsSessionManager sessionManager)
     {
-        _remoteEndpoint = remoteEndpoint;
         _callback = callback;
         _readBufferSize = readBufferSize;
         _sessionManager = sessionManager;
@@ -68,7 +60,7 @@ internal class PsHandlerConnect : PsHandler<PsStateConnect>
         try
         {
             // connect
-            state.Socket.BeginConnect(_remoteEndpoint, Complete, state);
+            state.Socket.BeginConnect(state.RemoteEndpoint, Complete, state);
         }
         catch (Exception e)
         {

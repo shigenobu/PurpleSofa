@@ -96,11 +96,11 @@ public class PsClient
             _sessionManager.StartTimeoutTask();
 
             // start client
-            var remoteEndpoint = new IPEndPoint(IPAddress.Parse(_host), _port);
-            _handlerConnect = new PsHandlerConnect(remoteEndpoint, _callback, ReadBufferSize, _sessionManager);
+            _handlerConnect = new PsHandlerConnect(_callback, ReadBufferSize, _sessionManager);
             _handlerConnect.Prepare(new PsStateConnect
             {
-                Socket = _clientSocket
+                Socket = _clientSocket,
+                RemoteEndpoint = new IPEndPoint(IPAddress.Parse(_host), _port)
             });
             PsLogger.Info($"Client connect to {_host}:{_port} " +
                           $"(readBufferSize:{ReadBufferSize})");

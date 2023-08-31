@@ -15,6 +15,11 @@ public class PsMultiClient
     private readonly PsCallback _callback;
 
     /// <summary>
+    ///     Handler connect.
+    /// </summary>
+    private PsHandlerConnect? _handlerConnect;
+
+    /// <summary>
     ///     Session manager.
     /// </summary>
     private PsSessionManager? _sessionManager;
@@ -44,11 +49,12 @@ public class PsMultiClient
     /// </summary>
     public void InitBundle()
     {
-        if (_sessionManager != null) return;
-
         // manager
         _sessionManager = new PsSessionManager(Divide);
         _sessionManager.StartTimeoutTask();
+
+        // handler connect
+        _handlerConnect = new PsHandlerConnect(_callback, ReadBufferSize, _sessionManager);
     }
 
     /// <summary>
@@ -59,10 +65,8 @@ public class PsMultiClient
         // shutdown timeout
         _sessionManager?.ShutdownTimeoutTask();
 
-        // shutdown close
-        _sessionManager?.ShutdownCloseTask();
-
-        _sessionManager = null;
+        // shutdown handler
+        _handlerConnect?.Shutdown();
     }
 
     /// <summary>
@@ -97,11 +101,10 @@ public class PsMultiClient
             }
 
             // start client
-            var remoteEndpoint = new IPEndPoint(IPAddress.Parse(host), port);
-            var handlerConnect = new PsHandlerConnect(remoteEndpoint, _callback, ReadBufferSize, _sessionManager!);
-            handlerConnect.Prepare(new PsStateConnect
+            _handlerConnect!.Prepare(new PsStateConnect
             {
-                Socket = clientSocket
+                Socket = clientSocket,
+                RemoteEndpoint = new IPEndPoint(IPAddress.Parse(host), port)
             });
             PsLogger.Info($"Multi client connect to {host}:{port} " +
                           $"(readBufferSize:{ReadBufferSize})");
