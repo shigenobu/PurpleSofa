@@ -42,7 +42,7 @@ internal class SeverCallback : PsCallback
         _holder = holder;
         _multiClient = multiClient;
         
-        _backends.Add(new Backend{Host = "127.0.0.1", Port = 8000});
+        _backends.Add(new Backend{Host = "127.0.0.1", Port = 33306});
         // _backends.Add(new Backend{Host = "127.0.0.1", Port = 8081});
         // _backends.Add(new Backend{Host = "127.0.0.1", Port = 8082});
         // _backends.Add(new Backend{Host = "127.0.0.1", Port = 8083});
@@ -57,6 +57,7 @@ internal class SeverCallback : PsCallback
         Console.WriteLine($"backend:{backend}");
         
         var cs = _multiClient.Connect(backend.Host, backend.Port);
+        Console.WriteLine($"csse:{cs.Socket.LocalEndPoint}");
         session.SetValue("csse", cs.Socket.LocalEndPoint);
         
         Console.WriteLine($"e server OnOpen:{cs.Socket.LocalEndPoint}");
@@ -70,14 +71,14 @@ internal class SeverCallback : PsCallback
 
         var csse = session.GetValue<EndPoint>("csse");
         var space = _holder.GetSpace(csse);
-        space.ToBack(message);
+        space.SendToBack(message);
     }
 
     public override void OnClose(PsSession session, PsCloseReason closeReason)
     {
         var csse = session.GetValue<EndPoint>("csse");
         Console.WriteLine($"e server OnClose:{csse}, Reason:{closeReason}");
-        _holder.ReleaseSpace(csse);
+        _holder.ReleaseSpace(csse, session);
     }
 }
 
@@ -104,13 +105,13 @@ internal class MultiClientCallback : PsCallback
         Console.WriteLine("OnMessage back -> proxy");
 
         var space = _holder.AllocateSpace(session.LocalEndPoint);
-        space.ToFront(message);
+        space.SendToFront(message);
     }
 
     public override void OnClose(PsSession session, PsCloseReason closeReason)
     {
         Console.WriteLine($"e client OnClose:{session.LocalEndPoint}, Reason:{closeReason}");
-        _holder.ReleaseSpace(session.LocalEndPoint);
+        _holder.ReleaseSpace(session.LocalEndPoint, session);
     }
 }
 
@@ -127,37 +128,124 @@ internal class Backend
 
 internal class Space
 {
-    internal PsSession? FrontSession { get; set; }
-    internal PsSession? BackSession { get; set; }
+    private Queue<byte[]> _toFrontBufferList = new ();
+    private Queue<byte[]> _toBackBufferList = new ();
 
-    public void ToBack(byte[] message)
+    private PsSession? _frontSession;
+    private PsSession? _backSession;
+
+    public PsSession? FrontSession
     {
-        var i = 0;
-        while (BackSession == null)
+        get => _frontSession;
+        set
         {
-            i++;
-            if (i > 100) throw new Exception("timeout ToBack");
-            Thread.Sleep(1);
+            _frontSession = value;
+            FlushToFront();
+        }
+    }
+    
+    public PsSession? BackSession
+    {
+        get => _backSession;
+        set
+        {
+            _backSession = value;
+            FlushToBack();
+        }
+    }
+    
+    public void SendToBack(byte[] message)
+    {
+        if (_backSession == null)
+        {
+            lock (_toBackBufferList)
+            {
+                _toBackBufferList.Enqueue(message);    
+            }
+            return;
         }
         
-        BackSession?.Send(message);
-        Console.WriteLine("Send proxy -> back");
-        Console.WriteLine(Encoding.UTF8.GetString(message));
+        FlushToBack();
+        try
+        {
+            _backSession?.Send(message);
+            Console.WriteLine("Send proxy -> back");
+            Console.WriteLine(Encoding.UTF8.GetString(message));
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+        }
     }
 
-    public void ToFront(byte[] message)
+    public void SendToFront(byte[] message)
     {
-        var i = 0;
-        while (FrontSession == null)
+        if (_frontSession == null)
         {
-            i++;
-            if (i > 100) throw new Exception("timeout ToFront");
-            Thread.Sleep(1);
+            lock (_toFrontBufferList)
+            {
+                _toFrontBufferList.Enqueue(message);    
+            }
+            return;
         }
         
-        FrontSession?.Send(message);
-        Console.WriteLine("Send proxy -> front");
-        Console.WriteLine(Encoding.UTF8.GetString(message));
+        FlushToFront();
+        try
+        {
+            _frontSession?.Send(message);
+            Console.WriteLine("Send proxy -> front");
+            Console.WriteLine(Encoding.UTF8.GetString(message));
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+        }
+    }
+    
+    public void FlushToFront()
+    {
+        if (_frontSession == null) return;
+
+        lock (_toFrontBufferList)
+        {
+            foreach (var msg in _toFrontBufferList)
+            {
+                try
+                {
+                    _frontSession.Send(msg);
+                    Console.WriteLine("Flush proxy -> front");
+                    Console.WriteLine(Encoding.UTF8.GetString(msg));
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                }
+            }
+            _toFrontBufferList.Clear(); 
+        }
+    }
+
+    public void FlushToBack()
+    {
+        if (_backSession == null) return;
+
+        lock (_toBackBufferList)
+        {
+            foreach (var msg in _toBackBufferList)
+            {
+                try
+                {
+                    _backSession.Send(msg);
+                    Console.WriteLine("Flush proxy -> back");
+                    Console.WriteLine(Encoding.UTF8.GetString(msg));
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                }
+            }
+            _toBackBufferList.Clear();
+        }
     }
 }
 
@@ -179,13 +267,29 @@ internal class FrontBackHolder
         return null;
     }
     
-    public void ReleaseSpace(EndPoint backLocalEndpoint)
+    public void ReleaseSpace(EndPoint backLocalEndpoint, PsSession closedSession)
     {
-        if (_endpointSpaceMap.TryRemove(backLocalEndpoint, out var space))
+        lock (backLocalEndpoint)
         {
-            Console.WriteLine("ReleaseSpace");
-            space.BackSession?.Close();
-            space.FrontSession?.Close();
-        } 
+            var space = GetSpace(backLocalEndpoint);
+            if (space == null) return;
+            
+            if (closedSession == space.BackSession)
+            {
+                space.FlushToFront();
+                space.FrontSession?.Close();
+            }
+            if (closedSession == space.FrontSession)
+            {
+                space.FlushToBack();
+                space.BackSession?.Close();
+            }
+
+            if (!space.FrontSession.IsOpen() && !space.BackSession.IsOpen())
+            {
+                Console.WriteLine("ReleaseSpace");
+                _endpointSpaceMap.TryRemove(backLocalEndpoint, out _);
+            }
+        }
     }
 }

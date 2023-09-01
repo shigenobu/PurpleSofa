@@ -119,7 +119,7 @@ public class PsSession
     ///     Is open.
     /// </summary>
     /// <returns>if several flags are false all, return true</returns>
-    private bool IsOpen()
+    public bool IsOpen()
     {
         return !CloseHandlerCalled
                && !ShutdownHandlerCalled
