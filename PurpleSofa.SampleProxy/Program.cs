@@ -6,6 +6,14 @@ using System.Text;
 using System.Text.Unicode;
 using PurpleSofa;
 
+int workMin;  
+int ioMin;  
+ThreadPool.GetMinThreads(out workMin, out ioMin);
+Console.WriteLine("MinThreads work={0}, i/o={1}", workMin, ioMin); 
+ThreadPool.SetMinThreads(workMin * 8, ioMin * 8);   
+ThreadPool.GetMinThreads(out workMin, out ioMin);
+Console.WriteLine("MinThreads work={0}, i/o={1}", workMin, ioMin); 
+
 PsDate.AddSeconds = 60 * 60 * 9;
 PsLogger.Verbose = true;
 // PsLogger.StopLogger = true;
