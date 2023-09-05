@@ -11,6 +11,6 @@ internal class PsStateAccept : PsState
     /// <returns>socket remote endpoint</returns>
     public override string ToString()
     {
-        return $"Socket: {Socket.PxSocketRemoteEndPoint()}";
+        return $"Socket accept - LocalEndPoint: {LocalEndPoint}, RemoteEndPoint: {RemoteEndPoint}";
     }
 }

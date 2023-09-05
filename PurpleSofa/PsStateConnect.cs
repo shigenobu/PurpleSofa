@@ -18,6 +18,6 @@ internal class PsStateConnect : PsState
     /// <returns>socket local endpoint</returns>
     public override string ToString()
     {
-        return $"Socket: {Socket.PxSocketLocalEndPoint()}, RemoteEndpoint: {RemoteEndpoint}";
+        return $"Socket connect - LocalEndPoint: {LocalEndPoint}, RemoteEndPoint: {RemoteEndPoint}";
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using System.Net;
+using System.Net.Mime;
 using System.Text;
 using System.Text.Unicode;
 using PurpleSofa;
@@ -42,7 +43,7 @@ internal class SeverCallback : PsCallback
         _holder = holder;
         _multiClient = multiClient;
         
-        _backends.Add(new Backend{Host = "127.0.0.1", Port = 33306});
+        _backends.Add(new Backend{Host = "127.0.0.1", Port = 5000});
         // _backends.Add(new Backend{Host = "127.0.0.1", Port = 8081});
         // _backends.Add(new Backend{Host = "127.0.0.1", Port = 8082});
         // _backends.Add(new Backend{Host = "127.0.0.1", Port = 8083});
@@ -58,8 +59,12 @@ internal class SeverCallback : PsCallback
         
         var cs = _multiClient.Connect(backend.Host, backend.Port);
         Console.WriteLine($"csse:{cs.Socket.LocalEndPoint}");
-        session.SetValue("csse", cs.Socket.LocalEndPoint);
+        if (cs.Socket.LocalEndPoint == null)
+        {
+            return;
+        }
         
+        session.SetValue("csse", cs.Socket.LocalEndPoint);
         Console.WriteLine($"e server OnOpen:{cs.Socket.LocalEndPoint}");
         var space = _holder.AllocateSpace(cs.Socket.LocalEndPoint);
         space.FrontSession = session;
@@ -169,8 +174,8 @@ internal class Space
         try
         {
             _backSession?.Send(message);
-            Console.WriteLine("Send proxy -> back");
-            Console.WriteLine(Encoding.UTF8.GetString(message));
+            Console.WriteLine($"Send proxy -> back ({message.Length})");
+            // Console.WriteLine(Encoding.UTF8.GetString(message));
         }
         catch (Exception e)
         {
@@ -193,8 +198,8 @@ internal class Space
         try
         {
             _frontSession?.Send(message);
-            Console.WriteLine("Send proxy -> front");
-            Console.WriteLine(Encoding.UTF8.GetString(message));
+            Console.WriteLine($"Send proxy -> front ({message.Length})");
+            // Console.WriteLine(Encoding.UTF8.GetString(message));
         }
         catch (Exception e)
         {
@@ -213,8 +218,8 @@ internal class Space
                 try
                 {
                     _frontSession.Send(msg);
-                    Console.WriteLine("Flush proxy -> front");
-                    Console.WriteLine(Encoding.UTF8.GetString(msg));
+                    Console.WriteLine($"Flush proxy -> front ({msg.Length})");
+                    // Console.WriteLine(Encoding.UTF8.GetString(msg));
                 }
                 catch (Exception e)
                 {
@@ -236,8 +241,8 @@ internal class Space
                 try
                 {
                     _backSession.Send(msg);
-                    Console.WriteLine("Flush proxy -> back");
-                    Console.WriteLine(Encoding.UTF8.GetString(msg));
+                    Console.WriteLine($"Flush proxy -> back ({msg.Length})");
+                    // Console.WriteLine(Encoding.UTF8.GetString(msg));
                 }
                 catch (Exception e)
                 {
@@ -277,12 +282,12 @@ internal class FrontBackHolder
             if (closedSession == space.BackSession)
             {
                 space.FlushToFront();
-                space.FrontSession?.Close();
+                // space.FrontSession?.Close();
             }
             if (closedSession == space.FrontSession)
             {
                 space.FlushToBack();
-                space.BackSession?.Close();
+                // space.BackSession?.Close();
             }
 
             if (!space.FrontSession.IsOpen() && !space.BackSession.IsOpen())

@@ -21,6 +21,7 @@ internal class PsStateRead : PsState
     /// <returns>socket remote endpoint, close reason</returns>
     public override string ToString()
     {
-        return $"Socket: {Socket.PxSocketRemoteEndPoint()}, CloseReason: {CloseReason}";
+        return
+            $"Socket read - LocalEndPoint: {LocalEndPoint}, RemoteEndPoint: {RemoteEndPoint}, CloseReason: {CloseReason}";
     }
 }
