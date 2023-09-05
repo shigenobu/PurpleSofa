@@ -100,3 +100,20 @@
 
 * Ipv4 socket is treated as ipv6 socket.
 * If server is listening on ipv6, client is enable to connect to server like v4.
+
+---
+
+### for multi client (ip v4, v6)
+
+    var multiClient = new PsMultiClient(new Callback());
+    multiClient.InitBundle();
+    for (int i = 0; i < 3; i++)
+    {
+        // assume that server listening on 8710, 8711, 8712
+        var clientSocket = multiClient.Connect("127.0.0.1", 8710 + i);
+        // ip v6
+        // var clientSocket = multiClient.Connect(PsSocketAddressFamily.Ipv6, "::1", 8710 + i);
+        :
+        multiClient.Disconnect(clientSocket);
+    }
+    multiClient.DestroyBundle();

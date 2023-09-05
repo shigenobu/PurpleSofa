@@ -12,7 +12,7 @@
         <RepositoryType>git</RepositoryType>
         <RepositoryUrl>https://github.com/shigenobu/PurpleSofa.git</RepositoryUrl>
         <Nullable>enable</Nullable>
-        <Version>0.0.9</Version>
+        <Version>0.1.0</Version>
     </PropertyGroup>
 
     <ItemGroup>
