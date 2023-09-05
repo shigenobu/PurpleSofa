@@ -22,6 +22,6 @@ internal class PsStateRead : PsState
     public override string ToString()
     {
         return
-            $"Socket read - LocalEndPoint: {LocalEndPoint}, RemoteEndPoint: {RemoteEndPoint}, CloseReason: {CloseReason}";
+            $"Socket read - LocalEndPoint:{LocalEndPoint}, RemoteEndPoint:{RemoteEndPoint}, CloseReason:{CloseReason}";
     }
 }

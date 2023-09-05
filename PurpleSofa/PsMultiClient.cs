@@ -104,7 +104,7 @@ public class PsMultiClient
             _handlerConnect!.Prepare(new PsStateConnect
             {
                 Socket = clientSocket,
-                RemoteEndpoint = new IPEndPoint(IPAddress.Parse(host), port)
+                RemoteEndPoint = new IPEndPoint(IPAddress.Parse(host), port)
             });
             PsLogger.Info($"Multi client connect to {host}:{port} " +
                           $"(readBufferSize:{ReadBufferSize})");

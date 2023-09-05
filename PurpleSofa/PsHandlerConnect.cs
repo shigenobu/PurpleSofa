@@ -60,7 +60,7 @@ internal class PsHandlerConnect : PsHandler<PsStateConnect>
         try
         {
             // connect
-            state.Socket.BeginConnect(state.RemoteEndpoint, Complete, state);
+            state.Socket.BeginConnect(state.RemoteEndPoint, Complete, state);
         }
         catch (Exception e)
         {

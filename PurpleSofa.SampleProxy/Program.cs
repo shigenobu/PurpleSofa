@@ -61,7 +61,8 @@ internal class SeverCallback : PsCallback
         Console.WriteLine($"csse:{cs.Socket.LocalEndPoint}");
         if (cs.Socket.LocalEndPoint == null)
         {
-            return;
+            Console.Error.WriteLine($"csse is null ({session})");
+            Environment.Exit(1);
         }
         
         session.SetValue("csse", cs.Socket.LocalEndPoint);

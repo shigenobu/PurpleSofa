@@ -100,7 +100,7 @@ public class PsClient
             _handlerConnect.Prepare(new PsStateConnect
             {
                 Socket = _clientSocket,
-                RemoteEndpoint = new IPEndPoint(IPAddress.Parse(_host), _port)
+                RemoteEndPoint = new IPEndPoint(IPAddress.Parse(_host), _port)
             });
             PsLogger.Info($"Client connect to {_host}:{_port} " +
                           $"(readBufferSize:{ReadBufferSize})");

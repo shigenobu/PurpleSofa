@@ -16,12 +16,38 @@ internal class PsState
     /// <summary>
     ///     Local endpoint.
     /// </summary>
-    protected readonly EndPoint? LocalEndPoint;
+    private EndPoint? _localEndPoint;
 
     /// <summary>
     ///     Remote endpoint.
     /// </summary>
-    protected readonly EndPoint? RemoteEndPoint;
+    private EndPoint? _remoteEndPoint;
+
+    /// <summary>
+    ///     Local endpoint.
+    /// </summary>
+    internal EndPoint LocalEndPoint
+    {
+        get
+        {
+            _localEndPoint ??= _socket.PxSocketLocalEndPoint();
+            return _localEndPoint!;
+        }
+        init => _localEndPoint = value;
+    }
+
+    /// <summary>
+    ///     Remote endpoint.
+    /// </summary>
+    internal EndPoint RemoteEndPoint
+    {
+        get
+        {
+            _remoteEndPoint ??= _socket.PxSocketLocalEndPoint();
+            return _remoteEndPoint!;
+        }
+        init => _remoteEndPoint = value;
+    }
 
     /// <summary>
     ///     Socket.
@@ -32,8 +58,10 @@ internal class PsState
         init
         {
             _socket = value;
-            LocalEndPoint = _socket.PxSocketLocalEndPoint();
-            RemoteEndPoint = _socket.PxSocketRemoteEndPoint();
+            var initLocalEndPoint = _socket.PxSocketLocalEndPoint();
+            if (initLocalEndPoint != null) _localEndPoint = initLocalEndPoint;
+            var initRemoteEndPoint = _socket.PxSocketRemoteEndPoint();
+            if (initRemoteEndPoint != null) _remoteEndPoint = initRemoteEndPoint;
         }
     }
 }

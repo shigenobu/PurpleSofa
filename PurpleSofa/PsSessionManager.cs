@@ -189,11 +189,18 @@ public class PsSessionManager
                 PsStateRead? stateRead;
                 // ReSharper disable once InconsistentlySynchronizedField
                 if ((stateRead = _closeQueue.Poll()) != null)
-                    new Task(state =>
+                {
+                    var t = new Task(state =>
                     {
                         PsLogger.Debug(() => $"Close state: {state}");
                         completed(PsHandlerRead.InvalidRead, (PsStateRead) state!);
-                    }, stateRead).Start();
+                    }, stateRead);
+                    t.Start();
+                    t.ContinueWith(comp =>
+                    {
+                        if (comp.Exception is { } e) PsLogger.Debug(e.InnerExceptions);
+                    });
+                }
             }
         }, _tokenSourceClose.Token, TaskCreationOptions.LongRunning, TaskScheduler.Current);
     }
