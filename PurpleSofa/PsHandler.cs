@@ -14,7 +14,7 @@ internal abstract class PsHandler<T> where T : PsState
     /// <param name="result">async result</param>
     /// <param name="state">state</param>
     /// <returns>if cast is success, return true</returns>
-    protected bool GetState(IAsyncResult result, out T? state)
+    protected static bool GetState(IAsyncResult result, out T? state)
     {
         state = default;
         if (result.AsyncState != null) state = (T) result.AsyncState;

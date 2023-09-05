@@ -73,7 +73,7 @@ internal class PsHandlerAccept : PsHandler<PsStateAccept>
                 // check cancel
                 if (_tokenSourceAccept.Token.IsCancellationRequested)
                 {
-                    PsLogger.Info($"Cancel accept task: {_tokenSourceAccept.Token.GetHashCode()}");
+                    PsLogger.Info($"Cancel accept task:{_tokenSourceAccept.Token.GetHashCode()}");
                     return;
                 }
 
@@ -109,7 +109,7 @@ internal class PsHandlerAccept : PsHandler<PsStateAccept>
         // get state
         if (!GetState(result, out var state))
         {
-            PsLogger.Debug(() => $"When accepted, no state result: {result}");
+            PsLogger.Debug(() => $"When accepted, no state result:{result}");
             return;
         }
 
@@ -119,8 +119,9 @@ internal class PsHandlerAccept : PsHandler<PsStateAccept>
             var clientSocket = state!.Socket.EndAccept(result);
 
             // callback
-            var session = _sessionManager.Generate(clientSocket);
-            PsLogger.Debug(() => $"Accepted session: {session}");
+            var connectionId = Guid.NewGuid();
+            var session = _sessionManager.Generate(clientSocket, connectionId);
+            PsLogger.Debug(() => $"Accepted session:{session}");
             lock (session)
             {
                 session.UpdateTimeout();
@@ -130,6 +131,7 @@ internal class PsHandlerAccept : PsHandler<PsStateAccept>
             // read
             var stateRead = new PsStateRead
             {
+                ConnectionId = connectionId,
                 Socket = clientSocket,
                 Buffer = new byte[_readBufferSize]
             };
@@ -148,7 +150,7 @@ internal class PsHandlerAccept : PsHandler<PsStateAccept>
     /// <param name="state">state</param>
     internal override void Failed(PsStateAccept state)
     {
-        PsLogger.Debug(() => $"Accept failed: {state}");
+        PsLogger.Debug(() => $"Accept failed:{state}");
     }
 
     /// <summary>

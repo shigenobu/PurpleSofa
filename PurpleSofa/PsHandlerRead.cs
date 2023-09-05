@@ -74,7 +74,7 @@ internal class PsHandlerRead : PsHandler<PsStateRead>
         // get state
         if (!GetState(result, out var state))
         {
-            PsLogger.Debug(() => $"When read, no state result: {result}");
+            PsLogger.Debug(() => $"When read, no state result:{result}");
             return;
         }
 
@@ -101,12 +101,12 @@ internal class PsHandlerRead : PsHandler<PsStateRead>
     /// <param name="state">state</param>
     internal override void Failed(PsStateRead state)
     {
-        PsLogger.Debug(() => $"Read failed: {state}");
+        PsLogger.Debug(() => $"Read failed:{state}");
 
         // force close
         if (state.CloseReason == PsCloseReason.None) state.CloseReason = PsCloseReason.Failed;
         var session = _sessionManager.By(state.Socket);
-        PsLogger.Debug(() => $"Close session at failed: {session}");
+        PsLogger.Debug(() => $"Close session at failed:{session}");
         if (session == null) return;
         lock (session)
         {
@@ -136,7 +136,7 @@ internal class PsHandlerRead : PsHandler<PsStateRead>
             // callback
             if (state.CloseReason == PsCloseReason.None) state.CloseReason = PsCloseReason.PeerClose;
             session = _sessionManager.By(state.Socket);
-            PsLogger.Debug(() => $"Close session: {session}");
+            PsLogger.Debug(() => $"Close session:{session}");
             if (session == null) return;
             lock (session)
             {
@@ -156,7 +156,7 @@ internal class PsHandlerRead : PsHandler<PsStateRead>
 
         // callback
         session = _sessionManager.Get(state.Socket);
-        PsLogger.Debug(() => $"Read session: {session}, size:{read}");
+        PsLogger.Debug(() => $"Read session:{session}, size:{read}");
         if (session == null) return;
         lock (session)
         {

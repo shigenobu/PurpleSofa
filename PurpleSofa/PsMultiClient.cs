@@ -74,10 +74,11 @@ public class PsMultiClient
     /// </summary>
     /// <param name="host">host</param>
     /// <param name="port">port</param>
-    /// <returns>multi client socket</returns>
-    public PsMultiClientSocket Connect(string host, int port)
+    /// <param name="connectionId">connection id</param>
+    /// <returns>multi client connection</returns>
+    public PsMultiClientConnection Connect(string host, int port, Guid? connectionId = null)
     {
-        return Connect(PsSocketAddressFamily.Ipv4, host, port);
+        return Connect(PsSocketAddressFamily.Ipv4, host, port, connectionId);
     }
 
     /// <summary>
@@ -86,8 +87,10 @@ public class PsMultiClient
     /// <param name="socketAddressFamily">address family</param>
     /// <param name="host">host</param>
     /// <param name="port">port</param>
-    /// <returns>multi client socket</returns>
-    public PsMultiClientSocket Connect(PsSocketAddressFamily socketAddressFamily, string host, int port)
+    /// <param name="connectionId">connection id</param>
+    /// <returns>multi client connection</returns>
+    public PsMultiClientConnection Connect(PsSocketAddressFamily socketAddressFamily, string host, int port,
+        Guid? connectionId = null)
     {
         try
         {
@@ -100,16 +103,20 @@ public class PsMultiClient
                 PsLogger.Info("Ipv4 socket is treated as ipv6 socket");
             }
 
+            // connection id
+            connectionId ??= Guid.NewGuid();
+
             // start client
             _handlerConnect!.Prepare(new PsStateConnect
             {
+                ConnectionId = (Guid) connectionId,
                 Socket = clientSocket,
                 RemoteEndPoint = new IPEndPoint(IPAddress.Parse(host), port)
             });
             PsLogger.Info($"Multi client connect to {host}:{port} " +
                           $"(readBufferSize:{ReadBufferSize})");
 
-            return new PsMultiClientSocket
+            return new PsMultiClientConnection
             {
                 Socket = clientSocket
             };
@@ -124,18 +131,18 @@ public class PsMultiClient
     /// <summary>
     ///     Disconnect.
     /// </summary>
-    /// <param name="multiClientSocket">multi client socket</param>
-    public void Disconnect(PsMultiClientSocket multiClientSocket)
+    /// <param name="multiClientConnection">multi client connection</param>
+    public void Disconnect(PsMultiClientConnection multiClientConnection)
     {
         // close
-        multiClientSocket.Socket.Close();
+        multiClientConnection.Socket.Close();
     }
 }
 
 /// <summary>
-///     Multi client socket.
+///     Multi client connection.
 /// </summary>
-public class PsMultiClientSocket
+public class PsMultiClientConnection
 {
     /// <summary>
     ///     Socket.

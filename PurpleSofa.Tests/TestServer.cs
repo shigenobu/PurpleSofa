@@ -33,7 +33,7 @@ namespace PurpleSofa.Tests
             {
                 while (true)
                 {
-                    PsLogger.Debug($"session count: {server.GetSessionCount()}");
+                    PsLogger.Debug($"session count:{server.GetSessionCount()}");
                     await Task.Delay(5000); 
                 }
             });

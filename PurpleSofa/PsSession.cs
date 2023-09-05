@@ -21,9 +21,9 @@ public class PsSession
     private readonly Socket _clientSocket;
 
     /// <summary>
-    ///     Session id.
+    ///     Connection id.
     /// </summary>
-    private readonly string _sid;
+    private readonly Guid _connectionId;
 
     /// <summary>
     ///     Idle milli seconds.
@@ -49,9 +49,10 @@ public class PsSession
     ///     Constructor.
     /// </summary>
     /// <param name="clientSocket">socket</param>
-    public PsSession(Socket clientSocket)
+    /// <param name="connectionId">connection id</param>
+    public PsSession(Socket clientSocket, Guid connectionId)
     {
-        _sid = PsUtils.RandomString(16);
+        _connectionId = connectionId;
         _clientSocket = clientSocket;
         LocalEndPoint = _clientSocket.PxSocketLocalEndPoint();
         RemoteEndPoint = _clientSocket.PxSocketRemoteEndPoint();
@@ -86,6 +87,15 @@ public class PsSession
     ///     Self closed.
     /// </summary>
     internal bool SelfClosed { get; private set; }
+
+    /// <summary>
+    ///     Get connection id.
+    /// </summary>
+    /// <returns>connection id</returns>
+    public Guid GetConnectionId()
+    {
+        return _connectionId;
+    }
 
     /// <summary>
     ///     Change idle milli seconds.
@@ -153,6 +163,7 @@ public class PsSession
 
                 _clientSocket.SendTimeout = timeout;
                 _clientSocket.Send(new ArraySegment<byte>(message), SocketFlags.None);
+                PsLogger.Debug(() => $"Send to {this} ({message.Length})");
             }
         }
         catch (Exception e)
@@ -225,7 +236,7 @@ public class PsSession
     /// <returns>session id</returns>
     public override string ToString()
     {
-        return $"Sid:{_sid}, Local:{LocalEndPoint}, Remote:{RemoteEndPoint}";
+        return $"ConnectionId:{_connectionId}, Local:{LocalEndPoint}, Remote:{RemoteEndPoint}";
     }
 }
 

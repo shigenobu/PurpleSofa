@@ -1,3 +1,4 @@
+using System;
 using System.Net;
 using System.Net.Sockets;
 
@@ -64,4 +65,9 @@ internal class PsState
             if (initRemoteEndPoint != null) _remoteEndPoint = initRemoteEndPoint;
         }
     }
+
+    /// <summary>
+    ///     Connection id.
+    /// </summary>
+    internal Guid ConnectionId { get; init; }
 }

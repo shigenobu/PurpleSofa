@@ -84,7 +84,7 @@ internal class PsHandlerConnect : PsHandler<PsStateConnect>
         // get state
         if (!GetState(result, out var state))
         {
-            PsLogger.Debug(() => $"When connected, no state result: {result}");
+            PsLogger.Debug(() => $"When connected, no state result:{result}");
             return;
         }
 
@@ -94,8 +94,8 @@ internal class PsHandlerConnect : PsHandler<PsStateConnect>
             state!.Socket.EndConnect(result);
 
             // callback
-            var session = _sessionManager.Generate(state.Socket);
-            PsLogger.Debug(() => $"Connected session: {session}");
+            var session = _sessionManager.Generate(state.Socket, state.ConnectionId);
+            PsLogger.Debug(() => $"Connected session:{session}");
             lock (session)
             {
                 session.UpdateTimeout();
@@ -105,6 +105,7 @@ internal class PsHandlerConnect : PsHandler<PsStateConnect>
             // read
             var stateRead = new PsStateRead
             {
+                ConnectionId = state.ConnectionId,
                 Socket = state.Socket,
                 Buffer = new byte[_readBufferSize]
             };
@@ -123,7 +124,7 @@ internal class PsHandlerConnect : PsHandler<PsStateConnect>
     /// <param name="state">state</param>
     internal override void Failed(PsStateConnect state)
     {
-        PsLogger.Debug(() => $"Connect failed: {state}");
+        PsLogger.Debug(() => $"Connect failed:{state}");
     }
 
     /// <summary>

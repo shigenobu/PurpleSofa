@@ -68,7 +68,7 @@ namespace PurpleSofa.Sample
                 session.ChangeIdleMilliSeconds(5000);
 
                 int inc = session.GetValue<int>(Key);
-                session.Send($"inc: {inc}");
+                session.Send($"inc:{inc}");
             }
 
             public override void OnMessage(PsSession session, byte[] message)

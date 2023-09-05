@@ -1,6 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Mime;
+using System.Net.Sockets;
 using System.Text;
 using System.Text.Unicode;
 using PurpleSofa;
@@ -56,18 +57,16 @@ internal class SeverCallback : PsCallback
         var idx = Interlocked.Increment(ref _forwardNo) % _backends.Count;
         var backend = _backends[idx];
         Console.WriteLine($"backend:{backend}");
+        session.SetValue("backend", backend);
+
+        var connectionId = Guid.NewGuid();
+        Console.WriteLine($"connectionId:{connectionId}");
+        session.SetValue("connectionId", connectionId);
         
-        var cs = _multiClient.Connect(backend.Host, backend.Port);
-        Console.WriteLine($"csse:{cs.Socket.LocalEndPoint}");
-        if (cs.Socket.LocalEndPoint == null)
-        {
-            Console.Error.WriteLine($"csse is null ({session})");
-            Environment.Exit(1);
-        }
+        var clientConnection = _multiClient.Connect(backend.Host, backend.Port, connectionId);
+        session.SetValue("clientConnection", clientConnection);
         
-        session.SetValue("csse", cs.Socket.LocalEndPoint);
-        Console.WriteLine($"e server OnOpen:{cs.Socket.LocalEndPoint}");
-        var space = _holder.AllocateSpace(cs.Socket.LocalEndPoint);
+        var space = _holder.AllocateSpace(connectionId);
         space.FrontSession = session;
     }
 
@@ -75,16 +74,24 @@ internal class SeverCallback : PsCallback
     {
         Console.WriteLine("OnMessage front -> proxy");
 
-        var csse = session.GetValue<EndPoint>("csse");
-        var space = _holder.GetSpace(csse);
+        var connectionId = session.GetValue<Guid>("connectionId");
+        var clientConnection = session.GetValue<PsMultiClientConnection>("clientConnection");
+        if (!clientConnection.Socket.Connected)
+        {
+            var backend = session.GetValue<Backend>("backend");
+            clientConnection = _multiClient.Connect(backend.Host, backend.Port, connectionId);
+            session.SetValue("clientConnection", clientConnection);
+        }
+        
+        var space = _holder.GetSpace(connectionId);
         space.SendToBack(message);
     }
 
     public override void OnClose(PsSession session, PsCloseReason closeReason)
     {
-        var csse = session.GetValue<EndPoint>("csse");
-        Console.WriteLine($"e server OnClose:{csse}, Reason:{closeReason}");
-        _holder.ReleaseSpace(csse, session);
+        var connectionId = session.GetValue<Guid>("connectionId");
+        Console.WriteLine($"e server OnClose:{connectionId}, Reason:{closeReason}");
+        _holder.ReleaseSpace(connectionId, session);
     }
 }
 
@@ -101,8 +108,8 @@ internal class MultiClientCallback : PsCallback
     {
         Console.WriteLine("OnOpen proxy -> back");
         
-        Console.WriteLine($"e client OnOpen:{session.LocalEndPoint}");
-        var space = _holder.AllocateSpace(session.LocalEndPoint);
+        Console.WriteLine($"e client OnOpen:{session.GetConnectionId()}");
+        var space = _holder.AllocateSpace(session.GetConnectionId());
         space.BackSession = session;
     }
 
@@ -110,14 +117,14 @@ internal class MultiClientCallback : PsCallback
     {
         Console.WriteLine("OnMessage back -> proxy");
 
-        var space = _holder.AllocateSpace(session.LocalEndPoint);
+        var space = _holder.AllocateSpace(session.GetConnectionId());
         space.SendToFront(message);
     }
 
     public override void OnClose(PsSession session, PsCloseReason closeReason)
     {
-        Console.WriteLine($"e client OnClose:{session.LocalEndPoint}, Reason:{closeReason}");
-        _holder.ReleaseSpace(session.LocalEndPoint, session);
+        Console.WriteLine($"e client OnClose:{session.GetConnectionId()}, Reason:{closeReason}");
+        _holder.ReleaseSpace(session.GetConnectionId(), session);
     }
 }
 
@@ -257,44 +264,47 @@ internal class Space
 
 internal class FrontBackHolder
 {
-    private readonly ConcurrentDictionary<EndPoint, Space> _endpointSpaceMap = new();
+    private readonly ConcurrentDictionary<Guid, Space> _endpointSpaceMap = new();
     
-    public Space AllocateSpace(EndPoint backLocalEndpoint)
+    public Space AllocateSpace(Guid connectionId)
     {
-        return _endpointSpaceMap.GetOrAdd(backLocalEndpoint, new Space());
+        return _endpointSpaceMap.GetOrAdd(connectionId, new Space());
     }
 
-    public Space? GetSpace(EndPoint backLocalEndpoint)
+    public Space? GetSpace(Guid connectionId)
     {
-        if (_endpointSpaceMap.TryGetValue(backLocalEndpoint, out var space))
+        if (_endpointSpaceMap.TryGetValue(connectionId, out var space))
         {
             return space;
         }
         return null;
     }
     
-    public void ReleaseSpace(EndPoint backLocalEndpoint, PsSession closedSession)
+    public void ReleaseSpace(Guid connectionId, PsSession closedSession)
     {
-        lock (backLocalEndpoint)
+        lock (connectionId.ToString())
         {
-            var space = GetSpace(backLocalEndpoint);
+            var space = GetSpace(connectionId);
             if (space == null) return;
             
             if (closedSession == space.BackSession)
             {
+                space.BackSession = null;
                 space.FlushToFront();
                 // space.FrontSession?.Close();
             }
             if (closedSession == space.FrontSession)
             {
+                space.FrontSession = null;
                 space.FlushToBack();
                 // space.BackSession?.Close();
             }
-
-            if (!space.FrontSession.IsOpen() && !space.BackSession.IsOpen())
+            
+            if ((space.FrontSession == null || !space.FrontSession.IsOpen())
+                && (space.BackSession == null || !space.BackSession.IsOpen()))
             {
                 Console.WriteLine("ReleaseSpace");
-                _endpointSpaceMap.TryRemove(backLocalEndpoint, out _);
+                _endpointSpaceMap.TryRemove(connectionId, out _);
             }
         }
     }

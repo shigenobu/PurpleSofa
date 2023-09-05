@@ -126,6 +126,7 @@ public class PsServer
             _handlerAccept = new PsHandlerAccept(_callback, ReadBufferSize, _sessionManager);
             _handlerAccept.Prepare(new PsStateAccept
             {
+                ConnectionId = Guid.Parse("00000000-0000-0000-0000-000000000000"), // dummy, for not used 
                 Socket = _serverSocket
             });
             PsLogger.Info($"Server listening on {Host}:{Port} " +

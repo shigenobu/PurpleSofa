@@ -77,8 +77,9 @@ public class PsClient
     /// <summary>
     ///     Connect.
     /// </summary>
+    /// <param name="connectionId">connection id</param>
     /// <exception cref="PsClientException">client error</exception>
-    public void Connect()
+    public void Connect(Guid? connectionId = null)
     {
         try
         {
@@ -95,10 +96,14 @@ public class PsClient
             _sessionManager = new PsSessionManager(1);
             _sessionManager.StartTimeoutTask();
 
+            // connection id
+            connectionId ??= Guid.NewGuid();
+
             // start client
             _handlerConnect = new PsHandlerConnect(_callback, ReadBufferSize, _sessionManager);
             _handlerConnect.Prepare(new PsStateConnect
             {
+                ConnectionId = (Guid) connectionId,
                 Socket = _clientSocket,
                 RemoteEndPoint = new IPEndPoint(IPAddress.Parse(_host), _port)
             });
