@@ -44,7 +44,7 @@ internal class SeverCallback : PsCallback
         _holder = holder;
         _multiClient = multiClient;
         
-        _backends.Add(new Backend{Host = "127.0.0.1", Port = 5000});
+        _backends.Add(new Backend{Host = "127.0.0.1", Port = 33306});
         // _backends.Add(new Backend{Host = "127.0.0.1", Port = 8081});
         // _backends.Add(new Backend{Host = "127.0.0.1", Port = 8082});
         // _backends.Add(new Backend{Host = "127.0.0.1", Port = 8083});

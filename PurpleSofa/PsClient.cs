@@ -72,7 +72,7 @@ public class PsClient
     /// <summary>
     ///     ReadBufferSize for read(receive).
     /// </summary>
-    public int ReadBufferSize { get; init; } = 2048;
+    public int ReadBufferSize { get; init; } = 4096;
 
     /// <summary>
     ///     Connect.
