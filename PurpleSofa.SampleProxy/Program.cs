@@ -52,7 +52,7 @@ internal class SeverCallback : PsCallback
         _holder = holder;
         _multiClient = multiClient;
         
-        _backends.Add(new Backend{Host = "127.0.0.1", Port = 33306});
+        _backends.Add(new Backend{Host = "127.0.0.1", Port = 5000});
         // _backends.Add(new Backend{Host = "127.0.0.1", Port = 8081});
         // _backends.Add(new Backend{Host = "127.0.0.1", Port = 8082});
         // _backends.Add(new Backend{Host = "127.0.0.1", Port = 8083});
@@ -71,9 +71,7 @@ internal class SeverCallback : PsCallback
         Console.WriteLine($"connectionId:{connectionId}");
         session.SetValue("connectionId", connectionId);
         
-        var clientConnection = _multiClient.Connect(backend.Host, backend.Port, connectionId);
-        session.SetValue("clientConnection", clientConnection);
-        
+        _multiClient.Connect(backend.Host, backend.Port, connectionId);
         var space = _holder.AllocateSpace(connectionId);
         space.FrontSession = session;
     }
@@ -83,14 +81,6 @@ internal class SeverCallback : PsCallback
         Console.WriteLine("OnMessage front -> proxy");
 
         var connectionId = session.GetValue<Guid>("connectionId");
-        var clientConnection = session.GetValue<PsMultiClientConnection>("clientConnection");
-        if (!clientConnection.Socket.Connected)
-        {
-            var backend = session.GetValue<Backend>("backend");
-            clientConnection = _multiClient.Connect(backend.Host, backend.Port, connectionId);
-            session.SetValue("clientConnection", clientConnection);
-        }
-        
         var space = _holder.GetSpace(connectionId);
         space.SendToBack(message);
     }
