@@ -83,10 +83,11 @@ namespace PurpleSofa.Tests
             session.Send($"Hello {session.RemoteEndPoint}.".PxToBytes());
         }
 
-        public override async void OnMessage(PsSession session, byte[] message)
+        public override void OnMessage(PsSession session, byte[] message)
         {
             PsLogger.Info($"Receive from client: '{message.PxToString()}' ({session}) before:{PsDate.Now()}.");
-            await Task.Delay(2000);
+            // Do not use 'await'.
+            // await Task.Delay(2000);
             PsLogger.Info($"Receive from client: '{message.PxToString()}' ({session}) after:{PsDate.Now()}.");
             
             int inc = session.GetValue<int>(Key);
