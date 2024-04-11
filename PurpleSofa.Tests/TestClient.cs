@@ -12,7 +12,7 @@ namespace PurpleSofa.Tests
         public TestClient(ITestOutputHelper helper)
         {
             PsDate.AddSeconds = 60 * 60 * 9;
-            // PsLogger.Verbose = true;
+            PsLogger.Verbose = true;
             PsLogger.Writer = new StreamWriter(new FileStream("Test.log", FileMode.Append));
         }
 
