@@ -13,7 +13,12 @@ namespace PurpleSofa.Tests
         {
             PsDate.AddSeconds = 60 * 60 * 9;
             PsLogger.Verbose = true;
-            PsLogger.Writer = new StreamWriter(new FileStream("Test.log", FileMode.Append));
+            // PsLogger.Writer = new StreamWriter(new FileStream("Test.log", FileMode.Append));
+            PsLogger.Transfer = new PsLoggerTransfer
+            {
+                Transfer = msg => helper.WriteLine(msg.ToString()),
+                Raw = false
+            };
         }
 
         [Fact]
@@ -32,7 +37,7 @@ namespace PurpleSofa.Tests
                             ReadBufferSize = 1024
                         };
                         client.Connect();
-                        await Task.Delay(5);
+                        await Task.Delay(10000);
                         client.Disconnect();
                     }));
             }
@@ -78,15 +83,18 @@ namespace PurpleSofa.Tests
             session.Send($"Hello {session.RemoteEndPoint}.".PxToBytes());
         }
 
-        public override void OnMessage(PsSession session, byte[] message)
+        public override async void OnMessage(PsSession session, byte[] message)
         {
-            PsLogger.Info($"Receive from client: '{message.PxToString()}' ({session}).");
+            PsLogger.Info($"Receive from client: '{message.PxToString()}' ({session}) before:{PsDate.Now()}.");
+            await Task.Delay(2000);
+            PsLogger.Info($"Receive from client: '{message.PxToString()}' ({session}) after:{PsDate.Now()}.");
             
             int inc = session.GetValue<int>(Key);
             inc++;
             session.SetValue(Key, inc);
             
             var reply = $"{inc}";
+            PsLogger.Info($"Receive from client: '{message.PxToString()}' ({session}) last:{PsDate.Now()}.");
             session.Send(reply.PxToBytes());
         }
 
