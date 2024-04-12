@@ -12,6 +12,10 @@
 * Check timeout at regular intervals by last receive time. It's useful to detect 'half close'.
 * 'OnClose' execution is taken via queue in order to avoid simultaneously many 'close'.
 
+(notice)  
+
+* Callback is disallow 'async' override, for example 'async void OnMessage'.
+
 ## how to use
 
 ### callback

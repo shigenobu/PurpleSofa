@@ -60,8 +60,11 @@ public class PsClient
     /// <param name="socketAddressFamily">address family</param>
     /// <param name="host">host</param>
     /// <param name="port">port</param>
+    /// <exception cref="PsClientException">async method contains exception</exception>
     public PsClient(PsCallback callback, PsSocketAddressFamily socketAddressFamily, string host, int port)
     {
+        if (PsCallback.ContainsAsync(callback))
+            throw new PsClientException($"Disallow async method in {callback.GetType().FullName}.");
         _callback = callback;
         _socketAddressFamily = socketAddressFamily;
         _host = host;
@@ -142,6 +145,14 @@ public class PsClientException : Exception
     /// </summary>
     /// <param name="e">exception</param>
     internal PsClientException(Exception e) : base(e.ToString())
+    {
+    }
+
+    /// <summary>
+    ///     Constructor.
+    /// </summary>
+    /// <param name="msg">msg</param>
+    public PsClientException(string msg) : base(msg)
     {
     }
 }

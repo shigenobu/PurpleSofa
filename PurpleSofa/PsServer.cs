@@ -42,8 +42,11 @@ public class PsServer
     ///     Constructor.
     /// </summary>
     /// <param name="callback">callback</param>
+    /// <exception cref="PsServerException">async method contains exception</exception>
     public PsServer(PsCallback callback)
     {
+        if (PsCallback.ContainsAsync(callback))
+            throw new PsServerException($"Disallow async method in {callback.GetType().FullName}.");
         _callback = callback;
     }
 
@@ -183,6 +186,14 @@ public class PsServerException : Exception
     /// </summary>
     /// <param name="e">exception</param>
     internal PsServerException(Exception e) : base(e.ToString())
+    {
+    }
+
+    /// <summary>
+    ///     Constructor.
+    /// </summary>
+    /// <param name="msg">msg</param>
+    internal PsServerException(string msg) : base(msg)
     {
     }
 }
