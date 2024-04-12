@@ -155,14 +155,11 @@ public class PsSession
     {
         try
         {
-            lock (this)
-            {
-                if (!IsOpen()) return;
+            if (!IsOpen()) return;
 
-                _clientSocket.SendTimeout = timeout;
-                _clientSocket.Send(new ArraySegment<byte>(message), SocketFlags.None);
-                PsLogger.Debug(() => $"Send to {this} ({message.Length})");
-            }
+            _clientSocket.SendTimeout = timeout;
+            _clientSocket.Send(new ArraySegment<byte>(message), SocketFlags.None);
+            PsLogger.Debug(() => $"Send to {this} ({message.Length})");
         }
         catch (Exception e)
         {
@@ -179,20 +176,17 @@ public class PsSession
     /// </summary>
     public void Close()
     {
-        lock (this)
+        if (!IsOpen()) return;
+
+        // self closed is set to true
+        SelfClosed = true;
+
+        // direct into queue
+        CloseQueue?.Add(new PsStateRead
         {
-            if (!IsOpen()) return;
-
-            // self closed is set to true
-            SelfClosed = true;
-
-            // direct into queue
-            CloseQueue?.Add(new PsStateRead
-            {
-                Socket = _clientSocket,
-                CloseReason = PsCloseReason.SelfClose
-            });
-        }
+            Socket = _clientSocket,
+            CloseReason = PsCloseReason.SelfClose
+        });
     }
 
     /// <summary>

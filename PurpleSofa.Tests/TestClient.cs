@@ -13,12 +13,12 @@ namespace PurpleSofa.Tests
         {
             PsDate.AddSeconds = 60 * 60 * 9;
             PsLogger.Verbose = true;
-            // PsLogger.Writer = new StreamWriter(new FileStream("Test.log", FileMode.Append));
-            PsLogger.Transfer = new PsLoggerTransfer
-            {
-                Transfer = msg => helper.WriteLine(msg.ToString()),
-                Raw = false
-            };
+            PsLogger.Writer = new StreamWriter(new FileStream("Test.log", FileMode.Append));
+            // PsLogger.Transfer = new PsLoggerTransfer
+            // {
+            //     Transfer = msg => helper.WriteLine(msg.ToString()),
+            //     Raw = false
+            // };
         }
 
         [Fact]
@@ -76,32 +76,59 @@ namespace PurpleSofa.Tests
     public class CallbackServer : PsCallback
     {
         private const string Key = "inc";
+
+        private readonly object _lock = new object();
+
+        private List<PsSession> _sessions = new List<PsSession>();
         
         public override void OnOpen(PsSession session)
         {
-            session.SetValue(Key, 0);
-            session.Send($"Hello {session.RemoteEndPoint}.".PxToBytes());
+            lock (_lock)
+            {
+                _sessions.Add(session);
+                
+                session.SetValue(Key, 0);
+                foreach (var s in _sessions)
+                {
+                    s.Send($"Hello {s.RemoteEndPoint}.".PxToBytes());    
+                }
+            }
         }
 
         public override void OnMessage(PsSession session, byte[] message)
         {
-            PsLogger.Info($"Receive from client: '{message.PxToString()}' ({session}) before:{PsDate.Now()}.");
-            // Do not use 'await'.
-            // await Task.Delay(2000);
-            PsLogger.Info($"Receive from client: '{message.PxToString()}' ({session}) after:{PsDate.Now()}.");
+            lock (_lock)
+            {
+                // PsLogger.Info($"Receive from client: '{message.PxToString()}' ({session}) before:{PsDate.Now()}.");
+                // Do not use 'await'.
+                // await Task.Delay(2000);
+                // PsLogger.Info($"Receive from client: '{message.PxToString()}' ({session}) after:{PsDate.Now()}.");
             
-            int inc = session.GetValue<int>(Key);
-            inc++;
-            session.SetValue(Key, inc);
+                int inc = session.GetValue<int>(Key);
+                inc++;
+                session.SetValue(Key, inc);
             
-            var reply = $"{inc}";
-            PsLogger.Info($"Receive from client: '{message.PxToString()}' ({session}) last:{PsDate.Now()}.");
-            session.Send(reply.PxToBytes());
+                var reply = $"s{inc}";
+                // PsLogger.Info($"Receive from client: '{message.PxToString()}' ({session}) last:{PsDate.Now()}.");
+                foreach (var s in _sessions)
+                {
+                    // s.Send(reply.PxToBytes());    
+                    s.Send(message);    
+                }
+            }
         }
 
         public override void OnClose(PsSession session, PsCloseReason closeReason)
         {
-            PsLogger.Info($"Goodby {session.RemoteEndPoint} for {closeReason} at server.");
+            lock (_lock)
+            {
+                _sessions.Remove(session);
+                foreach (var s in _sessions)
+                {
+                    var reply = $"Goodby {session.RemoteEndPoint} for {closeReason} at server.";
+                    s.Send(reply.PxToBytes());    
+                }
+            }
         }
     }
     
@@ -112,7 +139,7 @@ namespace PurpleSofa.Tests
         public override void OnOpen(PsSession session)
         {
             session.SetValue(Key, 0);
-            session.Send($"Hello {session.LocalEndPoint}.".PxToBytes());
+            // session.Send($"Hello {session.LocalEndPoint}.".PxToBytes());
         }
 
         public override void OnMessage(PsSession session, byte[] message)
@@ -124,7 +151,7 @@ namespace PurpleSofa.Tests
             session.SetValue(Key, inc);
             
             if (inc > 5) return;
-            var reply = $"{inc}";
+            var reply = $"c{inc}";
             session.Send(reply.PxToBytes());
             
         }
