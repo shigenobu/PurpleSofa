@@ -7,18 +7,21 @@
 
 ## feature
 
-PurpleSofa is __'Event-based Asynchronous Pattern'__ library.  
-Not __'Task-based Asynchronous Pattern'__ .  
-So, disallowed for async override at callback method (OnOpen, OnMessage and OnClose).
+PurpleSofa is __'Event-based Asynchronous Pattern'__ socket wrapper library,  
+and __'Task-based Asynchronous Pattern'__ is used at callback methods.    
+So, __EAP__ and __TAP__ mixed.  
+Sync methods (OnOpen, OnMessage and OnClose) are disallowed for async override.   
+If you want to use 'async', Async methods (OnOpenAsync, OnMessageAsync and OnCloseAsync) are override with mode='Async'.
 
-* Callback for 'OnOpen'(accepted or connected), 'OnMessage'(received), 'OnClose'(received none).
+* Callback for 'OnOpen or OnOpenAsync'(accepted or connected), 'OnMessage or OnMessageAsync'(received), 'OnClose or
+  OnCloseAsync'(received none).
 * Can store user value in session.
 * Check timeout at regular intervals by last receive time. It's useful to detect 'half close'.
-* 'OnClose' execution is taken via queue in order to avoid simultaneously many 'close'.
+* 'OnClose or OnCloseAsync' execution is taken via queue in order to avoid simultaneously many 'close'.
 
 ## how to use
 
-### callback
+### callback (sync)
 
     public class Callback : PsCallback
     {
@@ -52,11 +55,48 @@ So, disallowed for async override at callback method (OnOpen, OnMessage and OnCl
         }
     }
 
+### callback (async)
+
+    public class AsyncCallback : PsCallback
+    {
+        private const string Key = "inc";
+        
+        public override async Task OnOpenAsync(PsSession session)
+        {
+            Console.WriteLine($"OnOpen {session}");
+            session.SetValue(Key, 0);
+            session.ChangeIdleMilliSeconds(5000);
+
+            int inc = session.GetValue<int>(Key);
+            await session.SendAsync($"inc: {inc}");
+        }
+
+        public override async Task OnMessageAsync(PsSession session, byte[] message)
+        {
+            Console.WriteLine($"OnMessage {session} {Encoding.UTF8.GetString(message)}");
+            int inc = session.GetValue<int>(Key);
+            inc++;
+            session.SetValue(Key, inc);
+            await session.SendAsync($"inc: {inc}");
+            if (inc > 3) session.Close();
+        }
+
+        public override Task OnCloseAsync(PsSession session, PsCloseReason closeReason)
+        {
+            session.ClearValue(Key);
+            int inc = session.GetValue<int>(Key);
+            Console.WriteLine($"OnClose {session} {closeReason}, inc:{inc}");
+            return Task.CompletedTask;
+        }
+    }
+
 ### for server (ip v4)
 
     public static void Main(string[] args)
     {
         var server = new PsServer(new Callback());
+        // if you want to use 'async', with mode='Async'
+        // var server = new PsServer(new Callback(){CallbackMode = PsCallbackMode.Async});
         server.Start();
         server.WaitFor();
         // --- another thread

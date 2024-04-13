@@ -151,6 +151,17 @@ public class PsSession
     }
 
     /// <summary>
+    ///     Send string.
+    /// </summary>
+    /// <param name="message">message</param>
+    /// <param name="timeout">timeout</param>
+    /// <exception cref="PsSendException">send error</exception>
+    public async Task SendAsync(string message, int timeout = DefaultTimeoutMilliSeconds)
+    {
+        await SendAsync(message.PxToBytes(), timeout);
+    }
+
+    /// <summary>
     ///     Send bytes.
     /// </summary>
     /// <param name="message">message</param>
