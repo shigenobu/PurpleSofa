@@ -46,7 +46,8 @@ public class PsServer
     public PsServer(PsCallback callback)
     {
         if (PsCallback.ContainsAsync(callback))
-            throw new PsServerException($"Disallow async method in {callback.GetType().FullName}.");
+            throw new PsServerException(
+                $"Disallow async override at {string.Join(',', PsCallback.SynchronousMethodNames.ToArray())} in {callback.GetType().FullName}, use 'xxxAsync' alternatively.");
         _callback = callback;
     }
 

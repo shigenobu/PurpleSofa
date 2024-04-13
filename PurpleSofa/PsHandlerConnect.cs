@@ -91,13 +91,20 @@ internal class PsHandlerConnect : PsHandler<PsStateConnect>
             state!.Socket.EndConnect(result);
 
             // callback
-            var session = _sessionManager.Generate(state.Socket, state.ConnectionId);
-            PsLogger.Debug(() => $"Connected session:{session}");
-            lock (session)
+            Task.Run(async () =>
             {
-                session.UpdateTimeout();
-                _callback.OnOpen(session);
-            }
+                var session = await _sessionManager.GenerateAsync(state.Socket, state.ConnectionId);
+                PsLogger.Debug(() => $"Connected session:{session}");
+                using (await session.Lock.LockAsync())
+                {
+                    session.UpdateTimeout();
+                    if (_callback.CallbackMode == PsCallbackMode.Sync)
+                        // ReSharper disable once MethodHasAsyncOverload
+                        _callback.OnOpen(session);
+                    else
+                        await _callback.OnOpenAsync(session);
+                }
+            });
 
             // read
             var stateRead = new PsStateRead

@@ -9,17 +9,26 @@ namespace PurpleSofa;
 public abstract class PsCallback
 {
     /// <summary>
+    ///     Synchronous method names.
+    /// </summary>
+    internal static readonly List<string> SynchronousMethodNames = new() {"OnOpen", "OnMessage", "OnClose"};
+
+    /// <summary>
+    ///     Callback mode.
+    /// </summary>
+    public PsCallbackMode CallbackMode { get; init; }
+
+    /// <summary>
     ///     Contains async.
     /// </summary>
     /// <param name="callback">callback</param>
     /// <returns>if contains, return true</returns>
     internal static bool ContainsAsync(PsCallback callback)
     {
-        var methodNames = new List<string> {"OnOpen", "OnMessage", "OnClose"};
         var attType = typeof(AsyncStateMachineAttribute);
         foreach (var methodInfo in callback.GetType().GetMethods())
         {
-            if (!methodNames.Contains(methodInfo.Name)) continue;
+            if (!SynchronousMethodNames.Contains(methodInfo.Name)) continue;
 
             var attrib = methodInfo.GetCustomAttribute(attType);
             if (attrib != null) return true;
@@ -37,11 +46,34 @@ public abstract class PsCallback
     }
 
     /// <summary>
+    ///     Async open handler.
+    /// </summary>
+    /// <param name="session">session</param>
+    /// <returns>task</returns>
+    public virtual Task OnOpenAsync(PsSession session)
+    {
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     ///     Message handler.
     /// </summary>
     /// <param name="session">session</param>
     /// <param name="message">message</param>
-    public abstract void OnMessage(PsSession session, byte[] message);
+    public virtual void OnMessage(PsSession session, byte[] message)
+    {
+    }
+
+    /// <summary>
+    ///     Async message handler.
+    /// </summary>
+    /// <param name="session">session</param>
+    /// <param name="message">message</param>
+    /// <returns>task</returns>
+    public virtual Task OnMessageAsync(PsSession session, byte[] message)
+    {
+        return Task.CompletedTask;
+    }
 
     /// <summary>
     ///     Close handler.
@@ -51,4 +83,31 @@ public abstract class PsCallback
     public virtual void OnClose(PsSession session, PsCloseReason closeReason)
     {
     }
+
+    /// <summary>
+    ///     Async close handler.
+    /// </summary>
+    /// <param name="session">session</param>
+    /// <param name="closeReason">close reason</param>
+    /// <returns>task</returns>
+    public virtual Task OnCloseAsync(PsSession session, PsCloseReason closeReason)
+    {
+        return Task.CompletedTask;
+    }
+}
+
+/// <summary>
+///     Callback mode.
+/// </summary>
+public enum PsCallbackMode
+{
+    /// <summary>
+    ///     Sync.
+    /// </summary>
+    Sync = default,
+
+    /// <summary>
+    ///     Async.
+    /// </summary>
+    Async
 }

@@ -103,22 +103,30 @@ internal class PsHandlerRead : PsHandler<PsStateRead>
         PsLogger.Debug(() => $"Read failed:{state}");
 
         // force close
-        if (state.CloseReason == PsCloseReason.None) state.CloseReason = PsCloseReason.Failed;
-        var session = _sessionManager.By(state.Socket);
-        PsLogger.Debug(() => $"Close session at failed:{session}");
-        if (session == null) return;
-        lock (session)
+        Task.Run(async () =>
         {
-            // close socket
-            state.Socket.Close();
+            if (state.CloseReason == PsCloseReason.None) state.CloseReason = PsCloseReason.Failed;
+            var session = await _sessionManager.ByAsync(state.Socket);
+            PsLogger.Debug(() => $"Close session at failed:{session}");
+            if (session == null) return;
 
-            // if never close handler called, true
-            if (!session.CloseHandlerCalled)
+            using (await session.Lock.LockAsync())
             {
-                session.CloseHandlerCalled = true;
-                _callback.OnClose(session, state.CloseReason);
+                // close socket
+                state.Socket.Close();
+
+                // if never close handler called, true
+                if (!session.CloseHandlerCalled)
+                {
+                    session.CloseHandlerCalled = true;
+                    if (_callback.CallbackMode == PsCallbackMode.Sync)
+                        // ReSharper disable once MethodHasAsyncOverload
+                        _callback.OnClose(session, state.CloseReason);
+                    else
+                        await _callback.OnCloseAsync(session, state.CloseReason);
+                }
             }
-        }
+        });
     }
 
     /// <summary>
@@ -133,45 +141,60 @@ internal class PsHandlerRead : PsHandler<PsStateRead>
         if (read <= InvalidRead)
         {
             // callback
-            if (state.CloseReason == PsCloseReason.None) state.CloseReason = PsCloseReason.PeerClose;
-            session = _sessionManager.By(state.Socket);
-            PsLogger.Debug(() => $"Close session:{session}");
-            if (session == null) return;
-            lock (session)
+            Task.Run(async () =>
             {
-                // close socket
-                state.Socket.Close();
+                if (state.CloseReason == PsCloseReason.None) state.CloseReason = PsCloseReason.PeerClose;
+                session = await _sessionManager.ByAsync(state.Socket);
+                PsLogger.Debug(() => $"Close session:{session}");
+                if (session == null) return;
 
-                // if never close handler called, true
-                if (!session.CloseHandlerCalled)
+                using (await session.Lock.LockAsync())
                 {
-                    session.CloseHandlerCalled = true;
-                    _callback.OnClose(session, state.CloseReason);
-                }
-            }
+                    // close socket
+                    state.Socket.Close();
 
+                    // if never close handler called, true
+                    if (!session.CloseHandlerCalled)
+                    {
+                        session.CloseHandlerCalled = true;
+                        if (_callback.CallbackMode == PsCallbackMode.Sync)
+                            // ReSharper disable once MethodHasAsyncOverload
+                            _callback.OnClose(session, state.CloseReason);
+                        else
+                            await _callback.OnCloseAsync(session, state.CloseReason);
+                    }
+                }
+            });
             return;
         }
 
         // callback
-        session = _sessionManager.Get(state.Socket);
-        PsLogger.Debug(() => $"Read session:{session}, size:{read}");
-        if (session == null) return;
-        lock (session)
+        Task.Run(async () =>
         {
-            // if called close by self is false and timeout is false, true
-            if (!session.SelfClosed && !session.IsTimeout())
-            {
-                var message = new byte[read];
-                Buffer.BlockCopy(state.Buffer!, 0, message, 0, message.Length);
-                session.UpdateTimeout();
-                _callback.OnMessage(session, message);
-            }
-        }
+            session = await _sessionManager.GetAsync(state.Socket);
+            PsLogger.Debug(() => $"Read session:{session}, size:{read}");
+            if (session == null) return;
 
-        // next read
-        state.Buffer = new byte[_readBufferSize];
-        Prepare(state);
+            using (await session.Lock.LockAsync())
+            {
+                // if called close by self is false and timeout is false, true
+                if (!session.SelfClosed && !session.IsTimeout())
+                {
+                    var message = new byte[read];
+                    Buffer.BlockCopy(state.Buffer!, 0, message, 0, message.Length);
+                    session.UpdateTimeout();
+                    if (_callback.CallbackMode == PsCallbackMode.Sync)
+                        // ReSharper disable once MethodHasAsyncOverload
+                        _callback.OnMessage(session, message);
+                    else
+                        await _callback.OnMessageAsync(session, message);
+                }
+            }
+
+            // next read
+            state.Buffer = new byte[_readBufferSize];
+            Prepare(state);
+        });
     }
 
     /// <summary>

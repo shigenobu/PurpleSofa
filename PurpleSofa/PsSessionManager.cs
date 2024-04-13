@@ -21,7 +21,7 @@ public class PsSessionManager
     /// <summary>
     ///     Session locks.
     /// </summary>
-    private readonly List<object> _sessionLocks;
+    private readonly List<PsLock> _sessionLocks;
 
     /// <summary>
     ///     Sessions.
@@ -61,8 +61,8 @@ public class PsSessionManager
     {
         _divide = divide;
 
-        _sessionLocks = new List<object>(divide);
-        for (var i = 0; i < divide; i++) _sessionLocks.Add(new object());
+        _sessionLocks = new List<PsLock>(divide);
+        for (var i = 0; i < divide; i++) _sessionLocks.Add(new PsLock());
 
         _sessions = new List<ConcurrentDictionary<Socket, PsSession>>(divide);
         for (var i = 0; i < divide; i++) _sessions.Add(new ConcurrentDictionary<Socket, PsSession>());
@@ -102,13 +102,13 @@ public class PsSessionManager
                 if (taskNo >= _divide) taskNo = 0;
 
                 // timeout
-                lock (_sessionLocks[taskNo])
+                using (await _sessionLocks[taskNo].LockAsync())
                 {
-                    foreach (var (socket, psSession) in _sessions[taskNo])
-                        lock (psSession)
+                    foreach (var (socket, session) in _sessions[taskNo])
+                        using (await session.Lock.LockAsync())
                         {
                             // if called close by self is false and timeout is true, true
-                            if (!psSession.SelfClosed && psSession.IsTimeout())
+                            if (!session.SelfClosed && session.IsTimeout())
                                 _closeQueue.Add(new PsStateRead
                                 {
                                     Socket = socket,
@@ -134,28 +134,31 @@ public class PsSessionManager
         _taskTimeout = null;
         _tokenSourceTimeout = null;
 
-        // shutdown all sessions
-        PsLogger.Info("Closing connections at shutdown");
-        for (var i = 0; i < _divide; i++)
-            lock (_sessionLocks[i])
-            {
-                foreach (var (socket, session) in _sessions[i])
-                    lock (session)
-                    {
-                        // if called close by self is false and shutdown handler is not called, true
-                        if (!session.SelfClosed && !session.ShutdownHandlerCalled)
+        Task.Run(async () =>
+        {
+            // shutdown all sessions
+            PsLogger.Info("Closing connections at shutdown");
+            for (var i = 0; i < _divide; i++)
+                using (await _sessionLocks[i].LockAsync())
+                {
+                    foreach (var (socket, session) in _sessions[i])
+                        using (await session.Lock.LockAsync())
                         {
-                            session.ShutdownHandlerCalled = true;
-                            _closeQueue.Add(new PsStateRead
+                            // if called close by self is false and shutdown handler is not called, true
+                            if (!session.SelfClosed && !session.ShutdownHandlerCalled)
                             {
-                                Socket = socket,
-                                CloseReason = PsCloseReason.Shutdown
-                            });
+                                session.ShutdownHandlerCalled = true;
+                                _closeQueue.Add(new PsStateRead
+                                {
+                                    Socket = socket,
+                                    CloseReason = PsCloseReason.Shutdown
+                                });
+                            }
                         }
-                    }
-            }
+                }
 
-        PsLogger.Info($"Shutdown timeout task -> divide:{_divide}");
+            PsLogger.Info($"Shutdown timeout task -> divide:{_divide}");
+        });
     }
 
     /// <summary>
@@ -186,12 +189,11 @@ public class PsSessionManager
                 // ReSharper disable once InconsistentlySynchronizedField
                 if ((stateRead = _closeQueue.Poll()) != null)
                 {
-                    var t = new Task(state =>
+                    var t = Task.Run(() =>
                     {
-                        PsLogger.Debug(() => $"Close state:{state}");
-                        completed(PsHandlerRead.InvalidRead, (PsStateRead) state!);
-                    }, stateRead);
-                    t.Start();
+                        PsLogger.Debug(() => $"Close state:{stateRead}");
+                        completed(PsHandlerRead.InvalidRead, stateRead);
+                    });
                     t.ContinueWith(comp =>
                     {
                         if (comp.Exception is { } e) PsLogger.Debug(e.InnerExceptions);
@@ -241,17 +243,17 @@ public class PsSessionManager
     }
 
     /// <summary>
-    ///     Generate session.
+    ///     Async generate session.
     /// </summary>
     /// <param name="clientSocket">socket</param>
     /// <param name="connectionId">connection id</param>
     /// <returns>session</returns>
-    internal PsSession Generate(Socket clientSocket, Guid connectionId)
+    internal async Task<PsSession> GenerateAsync(Socket clientSocket, Guid connectionId)
     {
         var mod = GetMod(clientSocket);
 
         PsSession? session;
-        lock (_sessionLocks[mod])
+        using (await _sessionLocks[mod].LockAsync())
         {
             if (!TryGet(clientSocket, out session))
             {
@@ -270,16 +272,16 @@ public class PsSessionManager
     }
 
     /// <summary>
-    ///     Get session.
+    ///     Async get session.
     /// </summary>
     /// <param name="clientSocket">socket</param>
     /// <returns>session or null</returns>
-    internal PsSession? Get(Socket clientSocket)
+    internal async Task<PsSession?> GetAsync(Socket clientSocket)
     {
         var mod = GetMod(clientSocket);
 
         PsSession? session;
-        lock (_sessionLocks[mod])
+        using (await _sessionLocks[mod].LockAsync())
         {
             if (!TryGet(clientSocket, out session)) return null;
         }
@@ -288,15 +290,15 @@ public class PsSessionManager
     }
 
     /// <summary>
-    ///     Remove session.
+    ///     Async remove session.
     /// </summary>
     /// <param name="clientSocket">socket</param>
     /// <returns>removed session or null</returns>
-    internal PsSession? By(Socket clientSocket)
+    internal async Task<PsSession?> ByAsync(Socket clientSocket)
     {
         var mod = GetMod(clientSocket);
         PsSession? session;
-        lock (_sessionLocks[mod])
+        using (await _sessionLocks[mod].LockAsync())
         {
             if (!_sessions[mod].TryRemove(clientSocket, out session)) return null;
 

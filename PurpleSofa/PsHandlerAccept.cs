@@ -116,13 +116,21 @@ internal class PsHandlerAccept : PsHandler<PsStateAccept>
 
             // callback
             var connectionId = Guid.NewGuid();
-            var session = _sessionManager.Generate(clientSocket, connectionId);
-            PsLogger.Debug(() => $"Accepted session:{session}");
-            lock (session)
+            Task.Run(async () =>
             {
-                session.UpdateTimeout();
-                _callback.OnOpen(session);
-            }
+                var session = await _sessionManager.GenerateAsync(clientSocket, connectionId);
+                PsLogger.Debug(() => $"Accepted session:{session}");
+
+                using (await session.Lock.LockAsync())
+                {
+                    session.UpdateTimeout();
+                    if (_callback.CallbackMode == PsCallbackMode.Sync)
+                        // ReSharper disable once MethodHasAsyncOverload
+                        _callback.OnOpen(session);
+                    else
+                        await _callback.OnOpenAsync(session);
+                }
+            });
 
             // read
             var stateRead = new PsStateRead

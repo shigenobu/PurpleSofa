@@ -7,9 +7,9 @@ using Xunit.Abstractions;
 
 namespace PurpleSofa.Tests
 {
-    public class TestClient
+    public class TestClientAsync
     {
-        public TestClient(ITestOutputHelper helper)
+        public TestClientAsync(ITestOutputHelper helper)
         {
             PsDate.AddSeconds = 60 * 60 * 9;
             PsLogger.Verbose = true;
@@ -22,9 +22,9 @@ namespace PurpleSofa.Tests
         }
 
         [Fact]
-        public void TestClientClose()
+        public void TestAsyncClientClose()
         {
-            var server = new PsServer(new CallbackServer());
+            var server = new PsServer(new AsyncCallbackServer(){CallbackMode = PsCallbackMode.Async});
             server.Start();
 
             var tasks = new List<Task>();
@@ -32,7 +32,7 @@ namespace PurpleSofa.Tests
             {
                 tasks.Add(Task.Run(async () =>
                     {
-                        var client = new PsClient(new CallbackClient(), "127.0.0.1", 8710)
+                        var client = new PsClient(new AsyncCallbackClient(){CallbackMode = PsCallbackMode.Async}, "127.0.0.1", 8710)
                         {
                             ReadBufferSize = 1024
                         };
@@ -51,9 +51,9 @@ namespace PurpleSofa.Tests
         }
         
         [Fact]
-        public void TestServerClose()
+        public void TestAsyncServerClose()
         {
-            var server = new PsServer(new CallbackServer());
+            var server = new PsServer(new AsyncCallbackServer(){CallbackMode = PsCallbackMode.Async});
             server.Start();
 
             var tasks = new List<Task>();
@@ -61,7 +61,7 @@ namespace PurpleSofa.Tests
             {
                 tasks.Add(Task.Run(() =>
                 {
-                    var client = new PsClient(new CallbackClient(), "127.0.0.1", 8710);
+                    var client = new PsClient(new AsyncCallbackClient(){CallbackMode = PsCallbackMode.Async}, "127.0.0.1", 8710);
                     client.Connect();
                 }));
             }
@@ -73,17 +73,17 @@ namespace PurpleSofa.Tests
         }
     }
     
-    public class CallbackServer : PsCallback
+    public class AsyncCallbackServer : PsCallback
     {
         private const string Key = "inc";
 
-        private readonly object _lock = new object();
+        private readonly PsLock _lock = new();
 
         private List<PsSession> _sessions = new List<PsSession>();
         
-        public override void OnOpen(PsSession session)
+        public override async Task OnOpenAsync(PsSession session)
         {
-            lock (_lock)
+            using (await _lock.LockAsync())
             {
                 _sessions.Add(session);
                 
@@ -91,14 +91,14 @@ namespace PurpleSofa.Tests
                 foreach (var s in _sessions)
                 {
                     // s.Send($"Hello {s.RemoteEndPoint}.".PxToBytes());    
-                    s.Send($"Hello num:{_sessions.Count}.".PxToBytes());    
+                    await s.SendAsync($"Hello num:{_sessions.Count}.".PxToBytes());    
                 }
             }
         }
 
-        public override void OnMessage(PsSession session, byte[] message)
+        public override async Task OnMessageAsync(PsSession session, byte[] message)
         {
-            lock (_lock)
+            using (await _lock.LockAsync())
             {
                 // PsLogger.Info($"Receive from client: '{message.PxToString()}' ({session}) before:{PsDate.Now()}.");
                 // Do not use 'await'.
@@ -114,36 +114,37 @@ namespace PurpleSofa.Tests
                 foreach (var s in _sessions)
                 {
                     // s.Send(reply.PxToBytes());    
-                    s.Send(message);    
+                    await s.SendAsync(message);    
                 }
             }
         }
 
-        public override void OnClose(PsSession session, PsCloseReason closeReason)
+        public override async Task OnCloseAsync(PsSession session, PsCloseReason closeReason)
         {
-            lock (_lock)
+            using (await _lock.LockAsync())
             {
                 _sessions.Remove(session);
                 foreach (var s in _sessions)
                 {
                     var reply = $"Goodby {session.RemoteEndPoint} for {closeReason} at server.";
-                    s.Send(reply.PxToBytes());    
+                    await s.SendAsync(reply.PxToBytes());    
                 }
             }
         }
     }
     
-    public class CallbackClient : PsCallback
+    public class AsyncCallbackClient : PsCallback
     {
         private const string Key = "inc";
         
-        public override void OnOpen(PsSession session)
+        public override Task OnOpenAsync(PsSession session)
         {
             session.SetValue(Key, 0);
             // session.Send($"Hello {session.LocalEndPoint}.".PxToBytes());
+            return Task.CompletedTask;
         }
 
-        public override void OnMessage(PsSession session, byte[] message)
+        public override async Task OnMessageAsync(PsSession session, byte[] message)
         {
             PsLogger.Info($"Receive from server: '{message.PxToString()}' ({session}).");
             
@@ -153,13 +154,13 @@ namespace PurpleSofa.Tests
             
             if (inc > 5) return;
             var reply = $"c{inc}";
-            session.Send(reply.PxToBytes());
-            
+            await session.SendAsync(reply.PxToBytes());
         }
 
-        public override void OnClose(PsSession session, PsCloseReason closeReason)
+        public override Task OnCloseAsync(PsSession session, PsCloseReason closeReason)
         {
             PsLogger.Info($"Goodby {session.LocalEndPoint} for {closeReason} at client.");
+            return Task.CompletedTask;
         }
     }
 }

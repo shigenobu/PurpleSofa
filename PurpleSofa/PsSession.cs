@@ -87,6 +87,11 @@ public class PsSession
     internal bool SelfClosed { get; private set; }
 
     /// <summary>
+    ///     Lock.
+    /// </summary>
+    internal PsLock Lock { get; } = new();
+
+    /// <summary>
     ///     Get connection id.
     /// </summary>
     /// <returns>connection id</returns>
@@ -153,12 +158,23 @@ public class PsSession
     /// <exception cref="PsSendException">send error</exception>
     public void Send(byte[] message, int timeout = DefaultTimeoutMilliSeconds)
     {
+        SendAsync(message, timeout).ConfigureAwait(false).GetAwaiter().GetResult();
+    }
+
+    /// <summary>
+    ///     Async send bytes.
+    /// </summary>
+    /// <param name="message">message</param>
+    /// <param name="timeout">timeout</param>
+    /// <exception cref="PsSendException">send error</exception>
+    public async Task SendAsync(byte[] message, int timeout = DefaultTimeoutMilliSeconds)
+    {
         try
         {
             if (!IsOpen()) return;
 
             _clientSocket.SendTimeout = timeout;
-            _clientSocket.Send(new ArraySegment<byte>(message), SocketFlags.None);
+            await _clientSocket.SendAsync(new ArraySegment<byte>(message), SocketFlags.None);
             PsLogger.Debug(() => $"Send to {this} ({message.Length})");
         }
         catch (Exception e)
