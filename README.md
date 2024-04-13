@@ -7,14 +7,14 @@
 
 ## feature
 
+PurpleSofa is __'Event-based Asynchronous Pattern'__ library.  
+Not __'Task-based Asynchronous Pattern'__ .  
+So, disallowed for async override at callback method (OnOpen, OnMessage and OnClose).   
+
 * Callback for 'OnOpen'(accepted or connected), 'OnMessage'(received), 'OnClose'(received none).
 * Can store user value in session.
 * Check timeout at regular intervals by last receive time. It's useful to detect 'half close'.
 * 'OnClose' execution is taken via queue in order to avoid simultaneously many 'close'.
-
-(notice)
-
-* Callback is disallow 'async' override, for example 'async void OnMessage'.
 
 ## how to use
 
