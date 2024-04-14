@@ -196,7 +196,7 @@ public class PsSessionManager
                     });
                     t.ContinueWith(comp =>
                     {
-                        if (comp.Exception is { } e) PsLogger.Debug(e.InnerExceptions);
+                        if (comp.Exception is { } e) PsLogger.Debug(() => e.InnerExceptions);
                     });
                 }
             }

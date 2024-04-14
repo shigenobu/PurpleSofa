@@ -6,6 +6,11 @@ namespace PurpleSofa;
 internal class PsStateRead : PsState
 {
     /// <summary>
+    ///     Volatile close reason.
+    /// </summary>
+    private volatile PsCloseReason _closeReason;
+
+    /// <summary>
     ///     Buffer by read.
     /// </summary>
     internal byte[]? Buffer { get; set; }
@@ -13,7 +18,11 @@ internal class PsStateRead : PsState
     /// <summary>
     ///     Close reason.
     /// </summary>
-    internal PsCloseReason CloseReason { get; set; }
+    internal PsCloseReason CloseReason
+    {
+        get => _closeReason;
+        set => _closeReason = value;
+    }
 
     /// <summary>
     ///     To String.

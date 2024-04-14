@@ -85,26 +85,23 @@ internal class PsHandlerConnect : PsHandler<PsStateConnect>
             return;
         }
 
-        try
+        // callback
+        var taskOpen = Task.Run(async () =>
         {
             // connect
             state!.Socket.EndConnect(result);
 
-            // callback
-            Task.Run(async () =>
+            var session = await _sessionManager.GenerateAsync(state.Socket, state.ConnectionId);
+            PsLogger.Debug(() => $"Connected session:{session}");
+            using (await session.Lock.LockAsync())
             {
-                var session = await _sessionManager.GenerateAsync(state.Socket, state.ConnectionId);
-                PsLogger.Debug(() => $"Connected session:{session}");
-                using (await session.Lock.LockAsync())
-                {
-                    session.UpdateTimeout();
-                    if (_callback.UseAsyncCallback)
-                        await _callback.OnOpenAsync(session);
-                    else
-                        // ReSharper disable once MethodHasAsyncOverload
-                        _callback.OnOpen(session);
-                }
-            });
+                session.UpdateTimeout();
+                if (_callback.UseAsyncCallback)
+                    await _callback.OnOpenAsync(session);
+                else
+                    // ReSharper disable once MethodHasAsyncOverload
+                    _callback.OnOpen(session);
+            }
 
             // read
             var stateRead = new PsStateRead
@@ -114,12 +111,13 @@ internal class PsHandlerConnect : PsHandler<PsStateConnect>
                 Buffer = new byte[_readBufferSize]
             };
             _handlerRead.Prepare(stateRead);
-        }
-        catch (Exception e)
+        });
+        taskOpen.ContinueWith(comp =>
         {
-            PsLogger.Debug(() => e);
+            if (comp.Exception is not { } e) return;
+            PsLogger.Debug(() => e.InnerExceptions);
             Failed(state!);
-        }
+        });
     }
 
     /// <summary>

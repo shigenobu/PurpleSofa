@@ -121,6 +121,7 @@ namespace PurpleSofa.Tests
 
         public override async Task OnCloseAsync(PsSession session, PsCloseReason closeReason)
         {
+            PsLogger.Info($"Goodby {session.RemoteEndPoint} for {closeReason} at server.");
             using (await _lock.LockAsync())
             {
                 _sessions.Remove(session);

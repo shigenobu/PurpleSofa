@@ -49,7 +49,7 @@ public static class PsUtils
         }
         catch (Exception e)
         {
-            PsLogger.Debug(() => e);
+            // ignored
         }
 
         return default;

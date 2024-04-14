@@ -141,7 +141,7 @@ internal class PsHandlerRead : PsHandler<PsStateRead>
         if (read <= InvalidRead)
         {
             // callback
-            Task.Run(async () =>
+            var taskClose = Task.Run(async () =>
             {
                 if (state.CloseReason == PsCloseReason.None) state.CloseReason = PsCloseReason.PeerClose;
                 session = await _sessionManager.ByAsync(state.Socket);
@@ -165,11 +165,16 @@ internal class PsHandlerRead : PsHandler<PsStateRead>
                     }
                 }
             });
+            taskClose.ContinueWith(comp =>
+            {
+                if (comp.Exception is not { } e) return;
+                PsLogger.Debug(() => e.InnerExceptions);
+            });
             return;
         }
 
         // callback
-        Task.Run(async () =>
+        var taskMessage = Task.Run(async () =>
         {
             session = await _sessionManager.GetAsync(state.Socket);
             PsLogger.Debug(() => $"Read session:{session}, size:{read}");
@@ -194,6 +199,13 @@ internal class PsHandlerRead : PsHandler<PsStateRead>
             // next read
             state.Buffer = new byte[_readBufferSize];
             Prepare(state);
+        });
+        taskMessage.ContinueWith(comp =>
+        {
+            if (comp.Exception is not { } e) return;
+            PsLogger.Debug(() => e.InnerExceptions);
+            // If exception is happened, force close.
+            Failed(state);
         });
     }
 

@@ -15,9 +15,9 @@ If you want to use 'async',
 Async methods (OnOpenAsync, OnMessageAsync and OnCloseAsync) are override with 'UseAsyncCallback = true'.
 
 * Callback for
-    * 'OnOpen or OnOpenAsync'(accepted or connected)
-    * 'OnMessage or OnMessageAsync'(received)
-    * 'OnClose or OnCloseAsync'(received none).
+    * 'OnOpen or OnOpenAsync' (accepted or connected)
+    * 'OnMessage or OnMessageAsync' (received)
+    * 'OnClose or OnCloseAsync' (received none).
 * Can store user value in session.
 * Check timeout at regular intervals by last receive time. It's useful to detect 'half close'.
 * 'OnClose or OnCloseAsync' execution is taken via queue in order to avoid simultaneously many 'close'.
@@ -157,10 +157,10 @@ Async methods (OnOpenAsync, OnMessageAsync and OnCloseAsync) are override with '
     for (int i = 0; i < 3; i++)
     {
         // assume that server listening on 8710, 8711, 8712
-        var clientSocket = multiClient.Connect("127.0.0.1", 8710 + i);
+        var clientConnection = multiClient.Connect("127.0.0.1", 8710 + i);
         // ip v6
-        // var clientSocket = multiClient.Connect(PsSocketAddressFamily.Ipv6, "::1", 8710 + i);
+        // var clientConnection = multiClient.Connect(PsSocketAddressFamily.Ipv6, "::1", 8710 + i);
         :
-        multiClient.Disconnect(clientSocket);
+        multiClient.Disconnect(clientConnection);
     }
     multiClient.DestroyBundle();
