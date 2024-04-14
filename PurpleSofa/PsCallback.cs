@@ -14,9 +14,9 @@ public abstract class PsCallback
     internal static readonly List<string> SynchronousMethodNames = new() {"OnOpen", "OnMessage", "OnClose"};
 
     /// <summary>
-    ///     Callback mode.
+    ///     Use async callback.
     /// </summary>
-    public PsCallbackMode CallbackMode { get; init; }
+    public virtual bool UseAsyncCallback { get; init; }
 
     /// <summary>
     ///     Contains async.
@@ -94,20 +94,4 @@ public abstract class PsCallback
     {
         return Task.CompletedTask;
     }
-}
-
-/// <summary>
-///     Callback mode.
-/// </summary>
-public enum PsCallbackMode
-{
-    /// <summary>
-    ///     Sync.
-    /// </summary>
-    Sync = default,
-
-    /// <summary>
-    ///     Async.
-    /// </summary>
-    Async
 }

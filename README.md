@@ -7,14 +7,17 @@
 
 ## feature
 
-PurpleSofa is __'Event-based Asynchronous Pattern'__ socket wrapper library,  
-and __'Task-based Asynchronous Pattern'__ is used at callback methods.    
-So, __EAP__ and __TAP__ mixed.  
+PurpleSofa is __'Asynchronous Programming Model (APM)'__ socket wrapper library,
+with __'Task-based Asynchronous Pattern (TAP)'__ at callback methods.  
+Otherwise, __APM__ and __TAP__ mixed.  
 Sync methods (OnOpen, OnMessage and OnClose) are disallowed for async override.   
-If you want to use 'async', Async methods (OnOpenAsync, OnMessageAsync and OnCloseAsync) are override with mode='Async'.
+If you want to use 'async',
+Async methods (OnOpenAsync, OnMessageAsync and OnCloseAsync) are override with 'UseAsyncCallback = true'.
 
-* Callback for 'OnOpen or OnOpenAsync'(accepted or connected), 'OnMessage or OnMessageAsync'(received), 'OnClose or
-  OnCloseAsync'(received none).
+* Callback for
+    * 'OnOpen or OnOpenAsync'(accepted or connected)
+    * 'OnMessage or OnMessageAsync'(received)
+    * 'OnClose or OnCloseAsync'(received none).
 * Can store user value in session.
 * Check timeout at regular intervals by last receive time. It's useful to detect 'half close'.
 * 'OnClose or OnCloseAsync' execution is taken via queue in order to avoid simultaneously many 'close'.
@@ -60,7 +63,9 @@ If you want to use 'async', Async methods (OnOpenAsync, OnMessageAsync and OnClo
     public class AsyncCallback : PsCallback
     {
         private const string Key = "inc";
-        
+
+        public override bool UseAsyncCallback { get; init; } = true;
+
         public override async Task OnOpenAsync(PsSession session)
         {
             Console.WriteLine($"OnOpen {session}");
@@ -95,8 +100,6 @@ If you want to use 'async', Async methods (OnOpenAsync, OnMessageAsync and OnClo
     public static void Main(string[] args)
     {
         var server = new PsServer(new Callback());
-        // if you want to use 'async', with mode='Async'
-        // var server = new PsServer(new Callback(){CallbackMode = PsCallbackMode.Async});
         server.Start();
         server.WaitFor();
         // --- another thread

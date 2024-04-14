@@ -18,7 +18,7 @@ namespace PurpleSofa.Tests
         [Fact]
         public void TestAsync()
         {
-            var server = new PsServer(new AsyncCallback(){CallbackMode = PsCallbackMode.Async})
+            var server = new PsServer(new AsyncCallback())
             {
                 SocketAddressFamily = PsSocketAddressFamily.Ipv6,
                 Host = "0.0.0.0",
@@ -45,6 +45,8 @@ namespace PurpleSofa.Tests
 
     public class AsyncCallback : PsCallback
     {
+        public override bool UseAsyncCallback { get; init; } = true;
+
         private const string Key = "inc";
         
         public override async Task OnOpenAsync(PsSession session)

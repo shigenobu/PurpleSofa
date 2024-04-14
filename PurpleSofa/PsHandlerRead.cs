@@ -119,11 +119,11 @@ internal class PsHandlerRead : PsHandler<PsStateRead>
                 if (!session.CloseHandlerCalled)
                 {
                     session.CloseHandlerCalled = true;
-                    if (_callback.CallbackMode == PsCallbackMode.Sync)
+                    if (_callback.UseAsyncCallback)
+                        await _callback.OnCloseAsync(session, state.CloseReason);
+                    else
                         // ReSharper disable once MethodHasAsyncOverload
                         _callback.OnClose(session, state.CloseReason);
-                    else
-                        await _callback.OnCloseAsync(session, state.CloseReason);
                 }
             }
         });
@@ -157,11 +157,11 @@ internal class PsHandlerRead : PsHandler<PsStateRead>
                     if (!session.CloseHandlerCalled)
                     {
                         session.CloseHandlerCalled = true;
-                        if (_callback.CallbackMode == PsCallbackMode.Sync)
+                        if (_callback.UseAsyncCallback)
+                            await _callback.OnCloseAsync(session, state.CloseReason);
+                        else
                             // ReSharper disable once MethodHasAsyncOverload
                             _callback.OnClose(session, state.CloseReason);
-                        else
-                            await _callback.OnCloseAsync(session, state.CloseReason);
                     }
                 }
             });
@@ -183,11 +183,11 @@ internal class PsHandlerRead : PsHandler<PsStateRead>
                     var message = new byte[read];
                     Buffer.BlockCopy(state.Buffer!, 0, message, 0, message.Length);
                     session.UpdateTimeout();
-                    if (_callback.CallbackMode == PsCallbackMode.Sync)
+                    if (_callback.UseAsyncCallback)
+                        await _callback.OnMessageAsync(session, message);
+                    else
                         // ReSharper disable once MethodHasAsyncOverload
                         _callback.OnMessage(session, message);
-                    else
-                        await _callback.OnMessageAsync(session, message);
                 }
             }
 

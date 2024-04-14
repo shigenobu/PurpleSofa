@@ -98,11 +98,11 @@ internal class PsHandlerConnect : PsHandler<PsStateConnect>
                 using (await session.Lock.LockAsync())
                 {
                     session.UpdateTimeout();
-                    if (_callback.CallbackMode == PsCallbackMode.Sync)
+                    if (_callback.UseAsyncCallback)
+                        await _callback.OnOpenAsync(session);
+                    else
                         // ReSharper disable once MethodHasAsyncOverload
                         _callback.OnOpen(session);
-                    else
-                        await _callback.OnOpenAsync(session);
                 }
             });
 

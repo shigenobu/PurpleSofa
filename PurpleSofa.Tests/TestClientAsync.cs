@@ -24,7 +24,7 @@ namespace PurpleSofa.Tests
         [Fact]
         public void TestAsyncClientClose()
         {
-            var server = new PsServer(new AsyncCallbackServer(){CallbackMode = PsCallbackMode.Async});
+            var server = new PsServer(new AsyncCallbackServer(){UseAsyncCallback = true});
             server.Start();
 
             var tasks = new List<Task>();
@@ -32,7 +32,7 @@ namespace PurpleSofa.Tests
             {
                 tasks.Add(Task.Run(async () =>
                     {
-                        var client = new PsClient(new AsyncCallbackClient(){CallbackMode = PsCallbackMode.Async}, "127.0.0.1", 8710)
+                        var client = new PsClient(new AsyncCallbackClient(){UseAsyncCallback = true}, "127.0.0.1", 8710)
                         {
                             ReadBufferSize = 1024
                         };
@@ -53,7 +53,7 @@ namespace PurpleSofa.Tests
         [Fact]
         public void TestAsyncServerClose()
         {
-            var server = new PsServer(new AsyncCallbackServer(){CallbackMode = PsCallbackMode.Async});
+            var server = new PsServer(new AsyncCallbackServer(){UseAsyncCallback = true});
             server.Start();
 
             var tasks = new List<Task>();
@@ -61,7 +61,7 @@ namespace PurpleSofa.Tests
             {
                 tasks.Add(Task.Run(() =>
                 {
-                    var client = new PsClient(new AsyncCallbackClient(){CallbackMode = PsCallbackMode.Async}, "127.0.0.1", 8710);
+                    var client = new PsClient(new AsyncCallbackClient(){UseAsyncCallback = true}, "127.0.0.1", 8710);
                     client.Connect();
                 }));
             }
