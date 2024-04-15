@@ -185,7 +185,9 @@ public class PsSession
             if (!IsOpen()) return;
 
             _clientSocket.SendTimeout = timeout;
-            await _clientSocket.SendAsync(new ArraySegment<byte>(message), SocketFlags.None);
+            var t = _clientSocket.SendAsync(new ArraySegment<byte>(message), SocketFlags.None);
+            if (await Task.WhenAny(t, Task.Delay(timeout)) != t)
+                throw new PsSendException($"Error send to {this} ({message.Length})");
             PsLogger.Debug(() => $"Send to {this} ({message.Length})");
         }
         catch (Exception e)
@@ -269,6 +271,14 @@ public class PsSendException : Exception
     /// </summary>
     /// <param name="e">exception</param>
     internal PsSendException(Exception e) : base(e.ToString())
+    {
+    }
+
+    /// <summary>
+    ///     Constructor.
+    /// </summary>
+    /// <param name="msg">msg</param>
+    internal PsSendException(string msg) : base(msg)
     {
     }
 }
