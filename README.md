@@ -7,7 +7,7 @@
 
 ## feature
 
-PurpleSofa is __'Asynchronous Programming Model (APM)'__ socket wrapper library,
+PurpleSofa is __'Asynchronous Programming Model (APM)'__ socket wrapper library,  
 with __'Task-based Asynchronous Pattern (TAP)'__ at callback methods.  
 Otherwise, __APM__ and __TAP__ mixed.  
 Sync methods (OnOpen, OnMessage and OnClose) are disallowed for async override.   
