@@ -11,7 +11,7 @@ public abstract class PsCallback
     /// <summary>
     ///     Synchronous method names.
     /// </summary>
-    internal static readonly List<string> SynchronousMethodNames = new() {"OnOpen", "OnMessage", "OnClose"};
+    internal static readonly List<string> SynchronousMethodNames = ["OnOpen", "OnMessage", "OnClose"];
 
     /// <summary>
     ///     Use async callback.
@@ -41,6 +41,7 @@ public abstract class PsCallback
     ///     Open handler.
     /// </summary>
     /// <param name="session">session</param>
+    [Obsolete("Use async methods instead with 'UseAsyncCallback' setting to 'true'.")]
     public virtual void OnOpen(PsSession session)
     {
     }
@@ -60,6 +61,7 @@ public abstract class PsCallback
     /// </summary>
     /// <param name="session">session</param>
     /// <param name="message">message</param>
+    [Obsolete("Use async methods instead with 'UseAsyncCallback' setting to 'true'.")]
     public virtual void OnMessage(PsSession session, byte[] message)
     {
     }
@@ -80,6 +82,7 @@ public abstract class PsCallback
     /// </summary>
     /// <param name="session">session</param>
     /// <param name="closeReason">close reason</param>
+    [Obsolete("Use async methods instead with 'UseAsyncCallback' setting to 'true'.")]
     public virtual void OnClose(PsSession session, PsCloseReason closeReason)
     {
     }

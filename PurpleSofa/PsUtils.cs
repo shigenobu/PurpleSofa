@@ -47,7 +47,7 @@ public static class PsUtils
         {
             return func.Invoke();
         }
-        catch (Exception e)
+        catch (Exception)
         {
             // ignored
         }

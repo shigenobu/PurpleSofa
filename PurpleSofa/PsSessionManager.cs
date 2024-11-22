@@ -231,11 +231,11 @@ public class PsSessionManager
     }
 
     /// <summary>
-    ///     Try get session.
+    ///     Try to get session.
     /// </summary>
     /// <param name="clientSocket">socket</param>
     /// <param name="session">session</param>
-    /// <returns>if get session, return true</returns>
+    /// <returns>if to get session, return true</returns>
     private bool TryGet(Socket clientSocket, out PsSession? session)
     {
         var mod = GetMod(clientSocket);
