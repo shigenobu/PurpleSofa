@@ -22,6 +22,11 @@ Async methods (OnOpenAsync, OnMessageAsync and OnCloseAsync) are override with '
 * Check timeout at regular intervals by last receive time. It's useful to detect 'half close'.
 * 'OnClose or OnCloseAsync' execution is taken via queue in order to avoid simultaneously many 'close'.
 
+__(notice)__  
+
+Synchronous methods are now obsolete.  
+Please change to asynchronous methods.       
+
 ## how to use
 
 ### callback (sync)
@@ -146,7 +151,7 @@ Async methods (OnOpenAsync, OnMessageAsync and OnCloseAsync) are override with '
     }
 
 * Ipv4 socket is treated as ipv6 socket.
-* If server is listening on ipv6, client is enable to connect to server like v4.
+* If server is listening on ipv6, client is able to connect to server like v4.
 
 ---
 

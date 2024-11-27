@@ -19,12 +19,14 @@ internal abstract class PsHandler<T> where T : PsState
         return state != null;
     }
 
+    // ReSharper disable once GrammarMistakeInComment
     /// <summary>
     ///     Prepare (Accept, Connect or Read)
     /// </summary>
     /// <param name="state">state</param>
     internal abstract void Prepare(T state);
 
+    // ReSharper disable once GrammarMistakeInComment
     /// <summary>
     ///     Complete (Accept, Connect or Read)
     /// </summary>

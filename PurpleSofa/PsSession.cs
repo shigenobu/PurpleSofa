@@ -9,7 +9,7 @@ namespace PurpleSofa;
 public class PsSession
 {
     /// <summary>
-    ///     Default timeout milli seconds.
+    ///     Default timeout milliseconds.
     /// </summary>
     private const int DefaultTimeoutMilliSeconds = 1500;
 
@@ -29,7 +29,7 @@ public class PsSession
     private int _idleMilliSeconds = 60000;
 
     /// <summary>
-    ///     Life timestamp milli seconds.
+    ///     Life timestamp milliseconds.
     /// </summary>
     private long _lifeTimestampMilliseconds;
 
@@ -101,7 +101,7 @@ public class PsSession
     }
 
     /// <summary>
-    ///     Change idle milli seconds.
+    ///     Change idle milliseconds.
     /// </summary>
     /// <param name="idleMilliSeconds">idle milli seconds</param>
     public void ChangeIdleMilliSeconds(int idleMilliSeconds)
@@ -145,6 +145,7 @@ public class PsSession
     /// <param name="message">message</param>
     /// <param name="timeout">timeout</param>
     /// <exception cref="PsSendException">send error</exception>
+    [Obsolete("Use async methods instead.")]
     public void Send(string message, int timeout = DefaultTimeoutMilliSeconds)
     {
         Send(message.PxToBytes(), timeout);
@@ -167,6 +168,7 @@ public class PsSession
     /// <param name="message">message</param>
     /// <param name="timeout">timeout</param>
     /// <exception cref="PsSendException">send error</exception>
+    [Obsolete("Use async methods instead.")]
     public void Send(byte[] message, int timeout = DefaultTimeoutMilliSeconds)
     {
         SendAsync(message, timeout).ConfigureAwait(false).GetAwaiter().GetResult();
