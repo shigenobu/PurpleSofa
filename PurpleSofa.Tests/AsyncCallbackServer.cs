@@ -10,6 +10,7 @@ public class AsyncCallbackServer : PsCallback
 
     public override async Task OnOpenAsync(PsSession session)
     {
+        session.ChangeIdleMilliSeconds(1000);
         using (await _lock.LockAsync())
         {
             _sessions.Add(session);

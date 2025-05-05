@@ -6,6 +6,7 @@ public class AsyncCallbackClient : PsCallback
 
     public override Task OnOpenAsync(PsSession session)
     {
+        session.ChangeIdleMilliSeconds(1000);
         session.SetValue(Key, 0);
         // session.Send($"Hello {session.LocalEndPoint}.".PxToBytes());
         return Task.CompletedTask;

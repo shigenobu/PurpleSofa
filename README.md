@@ -9,7 +9,7 @@
 
 PurpleSofa is __'Asynchronous Programming Model (APM)'__ socket wrapper library,  
 with __'Task-based Asynchronous Pattern (TAP)'__ at callback methods.  
-Otherwise, __APM__ and __TAP__ mixed.  
+Otherwise, __APM__ and __TAP__ mixed.
 
 * Callback for
     * 'OnOpenAsync' (accepted or connected)
@@ -23,11 +23,9 @@ Otherwise, __APM__ and __TAP__ mixed.
 
 ### callback
 
-    public class AsyncCallback : PsCallback
+    public class Callback : PsCallback
     {
         private const string Key = "inc";
-
-        public override bool UseAsyncCallback { get; init; } = true;
 
         public override async Task OnOpenAsync(PsSession session)
         {
@@ -35,14 +33,14 @@ Otherwise, __APM__ and __TAP__ mixed.
             session.SetValue(Key, 0);
             session.ChangeIdleMilliSeconds(5000);
 
-            int inc = session.GetValue<int>(Key);
-            await session.SendAsync($"inc: {inc}");
+            var inc = session.GetValue<int>(Key);
+            await session.SendAsync($"inc:{inc}");
         }
 
         public override async Task OnMessageAsync(PsSession session, byte[] message)
         {
             Console.WriteLine($"OnMessage {session} {Encoding.UTF8.GetString(message)}");
-            int inc = session.GetValue<int>(Key);
+            var inc = session.GetValue<int>(Key);
             inc++;
             session.SetValue(Key, inc);
             await session.SendAsync($"inc: {inc}");
@@ -52,7 +50,7 @@ Otherwise, __APM__ and __TAP__ mixed.
         public override Task OnCloseAsync(PsSession session, PsCloseReason closeReason)
         {
             session.ClearValue(Key);
-            int inc = session.GetValue<int>(Key);
+            var inc = session.GetValue<int>(Key);
             Console.WriteLine($"OnClose {session} {closeReason}, inc:{inc}");
             return Task.CompletedTask;
         }
