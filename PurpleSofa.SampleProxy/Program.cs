@@ -1,18 +1,14 @@
 ﻿using System.Collections.Concurrent;
-using System.Net;
-using System.Net.Mime;
-using System.Net.Sockets;
 using System.Text;
-using System.Text.Unicode;
 using PurpleSofa;
 
-int workMin;  
-int ioMin;  
-ThreadPool.GetMinThreads(out workMin, out ioMin);
-Console.WriteLine("MinThreads work={0}, i/o={1}", workMin, ioMin); 
-ThreadPool.SetMinThreads(workMin * 8, ioMin * 8);   
-ThreadPool.GetMinThreads(out workMin, out ioMin);
-Console.WriteLine("MinThreads work={0}, i/o={1}", workMin, ioMin); 
+// int workMin;  
+// int ioMin;  
+// ThreadPool.GetMinThreads(out workMin, out ioMin);
+// Console.WriteLine("MinThreads work={0}, i/o={1}", workMin, ioMin); 
+// ThreadPool.SetMinThreads(workMin * 8, ioMin * 8);   
+// ThreadPool.GetMinThreads(out workMin, out ioMin);
+// Console.WriteLine("MinThreads work={0}, i/o={1}", workMin, ioMin); 
 
 PsDate.AddSeconds = 60 * 60 * 9;
 PsLogger.Verbose = true;
@@ -39,29 +35,28 @@ PsLogger.Close();
 
 internal class SeverCallback : PsCallback
 {
+    private readonly List<Backend> _backends = new();
     private readonly FrontBackHolder _holder;
-    
+
     private readonly PsMultiClient _multiClient;
 
-    private readonly List<Backend> _backends = new List<Backend>();
-
     private int _forwardNo;
-    
+
     public SeverCallback(FrontBackHolder holder, PsMultiClient multiClient)
     {
         _holder = holder;
         _multiClient = multiClient;
-        
-        _backends.Add(new Backend{Host = "127.0.0.1", Port = 5000});
+
+        _backends.Add(new Backend {Host = "127.0.0.1", Port = 5000});
         // _backends.Add(new Backend{Host = "127.0.0.1", Port = 8081});
         // _backends.Add(new Backend{Host = "127.0.0.1", Port = 8082});
         // _backends.Add(new Backend{Host = "127.0.0.1", Port = 8083});
     }
 
-    public override void OnOpen(PsSession session)
+    public override async Task OnOpenAsync(PsSession session)
     {
         Console.WriteLine("OnOpen front -> proxy");
-        
+
         var idx = Interlocked.Increment(ref _forwardNo) % _backends.Count;
         var backend = _backends[idx];
         Console.WriteLine($"backend:{backend}");
@@ -70,59 +65,52 @@ internal class SeverCallback : PsCallback
         var connectionId = Guid.NewGuid();
         Console.WriteLine($"connectionId:{connectionId}");
         session.SetValue("connectionId", connectionId);
-        
+
         _multiClient.Connect(backend.Host, backend.Port, connectionId);
         var space = _holder.AllocateSpace(connectionId);
-        space.FrontSession = session;
+        await space.SetFrontSessionAsync(session);
     }
 
-    public override void OnMessage(PsSession session, byte[] message)
+    public override async Task OnMessageAsync(PsSession session, byte[] message)
     {
         Console.WriteLine("OnMessage front -> proxy");
 
         var connectionId = session.GetValue<Guid>("connectionId");
         var space = _holder.GetSpace(connectionId);
-        space.SendToBack(message);
+        await space?.SendToBackAsync(message)!;
     }
 
-    public override void OnClose(PsSession session, PsCloseReason closeReason)
+    public override async Task OnCloseAsync(PsSession session, PsCloseReason closeReason)
     {
         var connectionId = session.GetValue<Guid>("connectionId");
         Console.WriteLine($"e server OnClose:{connectionId}, Reason:{closeReason}");
-        _holder.ReleaseSpace(connectionId, session);
+        await _holder.ReleaseSpaceAsync(connectionId, session);
     }
 }
 
-internal class MultiClientCallback : PsCallback
+internal class MultiClientCallback(FrontBackHolder holder) : PsCallback
 {
-    private FrontBackHolder _holder;
-    
-    public MultiClientCallback(FrontBackHolder holder)
-    {
-        _holder = holder;
-    }
-
-    public override void OnOpen(PsSession session)
+    public override async Task OnOpenAsync(PsSession session)
     {
         Console.WriteLine("OnOpen proxy -> back");
-        
+
         Console.WriteLine($"e client OnOpen:{session.GetConnectionId()}");
-        var space = _holder.AllocateSpace(session.GetConnectionId());
-        space.BackSession = session;
+        var space = holder.AllocateSpace(session.GetConnectionId());
+        await space.SetBackSessionAsync(session);
     }
 
-    public override void OnMessage(PsSession session, byte[] message)
+    public override async Task OnMessageAsync(PsSession session, byte[] message)
     {
         Console.WriteLine("OnMessage back -> proxy");
 
-        var space = _holder.AllocateSpace(session.GetConnectionId());
-        space.SendToFront(message);
+        var space = holder.AllocateSpace(session.GetConnectionId());
+        await space.SendToFrontAsync(message);
     }
 
-    public override void OnClose(PsSession session, PsCloseReason closeReason)
+    public override async Task OnCloseAsync(PsSession session, PsCloseReason closeReason)
     {
         Console.WriteLine($"e client OnClose:{session.GetConnectionId()}, Reason:{closeReason}");
-        _holder.ReleaseSpace(session.GetConnectionId(), session);
+        await holder.ReleaseSpaceAsync(session.GetConnectionId(), session);
     }
 }
 
@@ -137,51 +125,73 @@ internal class Backend
     }
 }
 
+internal class Locker
+{
+    private readonly SemaphoreSlim _semaphore = new(1, 1);
+
+    public async Task<IDisposable> LockAsync()
+    {
+        await _semaphore.WaitAsync();
+        return new LockerHandler(_semaphore);
+    }
+
+    private sealed class LockerHandler(SemaphoreSlim semaphore) : IDisposable
+    {
+        private bool _disposed;
+
+        public void Dispose()
+        {
+            if (_disposed) return;
+            semaphore.Release();
+            _disposed = true;
+        }
+    }
+}
+
 internal class Space
 {
-    private Queue<byte[]> _toFrontBufferList = new ();
-    private Queue<byte[]> _toBackBufferList = new ();
+    private readonly Locker _backLocker = new();
+    private readonly Locker _frontLocker = new();
+    private readonly Queue<byte[]> _toBackBufferList = new();
 
-    private PsSession? _frontSession;
-    private PsSession? _backSession;
+    private readonly Queue<byte[]> _toFrontBufferList = new();
 
-    public PsSession? FrontSession
+    public Locker FrontBackLocker => new();
+
+    public PsSession? FrontSession { get; private set; }
+
+    public PsSession? BackSession { get; private set; }
+
+    public async Task SetFrontSessionAsync(PsSession? frontSession)
     {
-        get => _frontSession;
-        set
-        {
-            _frontSession = value;
-            FlushToFront();
-        }
+        FrontSession = frontSession;
+        await FlushToFrontAsync();
     }
-    
-    public PsSession? BackSession
+
+    public async Task SetBackSessionAsync(PsSession? backSession)
     {
-        get => _backSession;
-        set
-        {
-            _backSession = value;
-            FlushToBack();
-        }
+        BackSession = backSession;
+        await FlushToBackAsync();
     }
-    
-    public void SendToBack(byte[] message)
+
+    public async Task SendToBackAsync(byte[] message)
     {
-        if (_backSession == null)
+        if (BackSession == null)
         {
-            lock (_toBackBufferList)
+            using (await _backLocker.LockAsync())
             {
-                _toBackBufferList.Enqueue(message);    
+                _toBackBufferList.Enqueue(message);
             }
+
             return;
         }
-        
-        FlushToBack();
+
+        await FlushToBackAsync();
         try
         {
-            _backSession?.Send(message);
+            await BackSession?.SendAsync(message)!;
             Console.WriteLine($"Send proxy -> back ({message.Length})");
-            // Console.WriteLine(Encoding.UTF8.GetString(message));
+            Console.WriteLine(Encoding.UTF8.GetString(message));
         }
         catch (Exception e)
         {
@@ -189,22 +199,24 @@ internal class Space
         }
     }
 
-    public void SendToFront(byte[] message)
+    public async Task SendToFrontAsync(byte[] message)
     {
-        if (_frontSession == null)
+        if (FrontSession == null)
         {
-            lock (_toFrontBufferList)
+            using (await _frontLocker.LockAsync())
             {
-                _toFrontBufferList.Enqueue(message);    
+                _toFrontBufferList.Enqueue(message);
             }
+
             return;
         }
-        
-        FlushToFront();
+
+        await FlushToFrontAsync();
         try
         {
-            _frontSession?.Send(message);
+            await FrontSession?.SendAsync(message)!;
             Console.WriteLine($"Send proxy -> front ({message.Length})");
+            Console.WriteLine(Encoding.UTF8.GetString(message));
             // Console.WriteLine(Encoding.UTF8.GetString(message));
         }
         catch (Exception e)
@@ -212,18 +224,17 @@ internal class Space
             Console.WriteLine(e);
         }
     }
-    
-    public void FlushToFront()
-    {
-        if (_frontSession == null) return;
 
-        lock (_toFrontBufferList)
+    public async Task FlushToFrontAsync()
+    {
+        if (FrontSession == null) return;
+
+        using (await _frontLocker.LockAsync())
         {
             foreach (var msg in _toFrontBufferList)
-            {
                 try
                 {
-                    _frontSession.Send(msg);
+                    await FrontSession.SendAsync(msg);
                     Console.WriteLine($"Flush proxy -> front ({msg.Length})");
                     // Console.WriteLine(Encoding.UTF8.GetString(msg));
                 }
@@ -231,22 +242,21 @@ internal class Space
                 {
                     Console.WriteLine(e);
                 }
-            }
-            _toFrontBufferList.Clear(); 
+
+            _toFrontBufferList.Clear();
         }
     }
 
-    public void FlushToBack()
+    public async Task FlushToBackAsync()
     {
-        if (_backSession == null) return;
+        if (BackSession == null) return;
 
-        lock (_toBackBufferList)
+        using (await _backLocker.LockAsync())
         {
             foreach (var msg in _toBackBufferList)
-            {
                 try
                 {
-                    _backSession.Send(msg);
+                    await BackSession.SendAsync(msg);
                     Console.WriteLine($"Flush proxy -> back ({msg.Length})");
                     // Console.WriteLine(Encoding.UTF8.GetString(msg));
                 }
@@ -254,7 +264,7 @@ internal class Space
                 {
                     Console.WriteLine(e);
                 }
-            }
+
             _toBackBufferList.Clear();
         }
     }
@@ -263,7 +273,7 @@ internal class Space
 internal class FrontBackHolder
 {
     private readonly ConcurrentDictionary<Guid, Space> _endpointSpaceMap = new();
-    
+
     public Space AllocateSpace(Guid connectionId)
     {
         return _endpointSpaceMap.GetOrAdd(connectionId, new Space());
@@ -271,33 +281,30 @@ internal class FrontBackHolder
 
     public Space? GetSpace(Guid connectionId)
     {
-        if (_endpointSpaceMap.TryGetValue(connectionId, out var space))
-        {
-            return space;
-        }
-        return null;
+        return _endpointSpaceMap.GetValueOrDefault(connectionId);
     }
-    
-    public void ReleaseSpace(Guid connectionId, PsSession closedSession)
+
+    public async Task ReleaseSpaceAsync(Guid connectionId, PsSession closedSession)
     {
-        lock (connectionId.ToString())
+        var space = GetSpace(connectionId);
+        if (space == null) return;
+
+        using (await space.FrontBackLocker.LockAsync())
         {
-            var space = GetSpace(connectionId);
-            if (space == null) return;
-            
             if (closedSession == space.BackSession)
             {
-                space.BackSession = null;
-                space.FlushToFront();
+                await space.SetBackSessionAsync(null);
+                await space.FlushToFrontAsync();
                 // space.FrontSession?.Close();
             }
+
             if (closedSession == space.FrontSession)
             {
-                space.FrontSession = null;
-                space.FlushToBack();
+                await space.SetFrontSessionAsync(null);
+                await space.FlushToBackAsync();
                 // space.BackSession?.Close();
             }
-            
+
             if ((space.FrontSession == null || !space.FrontSession.IsOpen())
                 && (space.BackSession == null || !space.BackSession.IsOpen()))
             {

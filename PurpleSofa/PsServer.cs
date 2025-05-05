@@ -42,12 +42,8 @@ public class PsServer
     ///     Constructor.
     /// </summary>
     /// <param name="callback">callback</param>
-    /// <exception cref="PsServerException">async method contains exception</exception>
     public PsServer(PsCallback callback)
     {
-        if (PsCallback.ContainsAsync(callback))
-            throw new PsServerException(
-                $"Disallow async override at {string.Join(',', PsCallback.SynchronousMethodNames.ToArray())} in {callback.GetType().FullName}, use 'xxxAsync' alternatively.");
         _callback = callback;
     }
 
@@ -128,7 +124,7 @@ public class PsServer
             _handlerAccept = new PsHandlerAccept(_callback, ReadBufferSize, _sessionManager);
             _handlerAccept.Prepare(new PsStateAccept
             {
-                ConnectionId = Guid.Parse("00000000-0000-0000-0000-000000000000"), // dummy, for not used 
+                ConnectionId = Guid.Empty, // fake, for not used 
                 Socket = _serverSocket
             });
             PsLogger.Info($"Server listening on {Host}:{Port} " +

@@ -145,7 +145,7 @@ public class PsSessionManager
                         using (await session.Lock.LockAsync())
                         {
                             // if called close by self is false and shutdown handler is not called, true
-                            if (!session.SelfClosed && !session.ShutdownHandlerCalled)
+                            if (session is {SelfClosed: false, ShutdownHandlerCalled: false})
                             {
                                 session.ShutdownHandlerCalled = true;
                                 _closeQueue.Add(new PsStateRead

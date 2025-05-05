@@ -3,24 +3,22 @@ using Xunit.Abstractions;
 
 namespace PurpleSofa.Tests;
 
-public class TestClientAsync
+public class TestClientV4V6Async
 {
-    public TestClientAsync(ITestOutputHelper helper)
+    public TestClientV4V6Async(ITestOutputHelper helper)
     {
         PsDate.AddSeconds = 60 * 60 * 9;
-        PsLogger.Verbose = true;
-        PsLogger.Writer = new StreamWriter(new FileStream("Test.log", FileMode.Append));
-        // PsLogger.Transfer = new PsLoggerTransfer
-        // {
-        //     Transfer = msg => helper.WriteLine(msg.ToString()),
-        //     Raw = false
-        // };
+        // PsLogger.Verbose = true;
+        PsLogger.Writer = new StreamWriter(new FileStream("TestV4V6.log", FileMode.Append));
     }
 
     [Fact]
-    public void TestAsyncClientClose()
+    public void TestClientCloseV4V6()
     {
-        var server = new PsServer(new AsyncCallbackServer());
+        var server = new PsServer(new AsyncCallbackServer())
+        {
+            SocketAddressFamily = PsSocketAddressFamily.Ipv6
+        };
         server.Start();
 
         var tasks = new List<Task>();
@@ -32,7 +30,7 @@ public class TestClientAsync
                     ReadBufferSize = 1024
                 };
                 client.Connect();
-                await Task.Delay(10000);
+                await Task.Delay(5);
                 client.Disconnect();
             }));
 
@@ -45,9 +43,12 @@ public class TestClientAsync
     }
 
     [Fact]
-    public void TestAsyncServerClose()
+    public void TestServerCloseV4V6()
     {
-        var server = new PsServer(new AsyncCallbackServer());
+        var server = new PsServer(new AsyncCallbackServer())
+        {
+            SocketAddressFamily = PsSocketAddressFamily.Ipv6
+        };
         server.Start();
 
         var tasks = new List<Task>();

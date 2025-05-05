@@ -1,4 +1,3 @@
-using System.Linq;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -22,7 +21,7 @@ public class TestNetwork
         var ip = PsNetwork.GetLocalIpv4Addresses().FirstOrDefault();
         PsLogger.Debug(ip);
     }
-    
+
     [Fact]
     public void TestIpv6()
     {

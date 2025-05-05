@@ -1,25 +1,24 @@
 using Xunit;
 using Xunit.Abstractions;
 
-namespace PurpleSofa.Tests
+namespace PurpleSofa.Tests;
+
+public class TestDate
 {
-    public class TestDate
+    public TestDate(ITestOutputHelper helper)
     {
-        public TestDate(ITestOutputHelper helper)
-        {
-            PsLogger.Verbose = true;
-            // PsLogger.Transfer = msg => helper.WriteLine(msg?.ToString());
-        }
+        PsLogger.Verbose = true;
+        // PsLogger.Transfer = msg => helper.WriteLine(msg?.ToString());
+    }
 
-        [Fact]
-        public void TestNow()
-        {
-            PsLogger.Debug(PsDate.Now());
+    [Fact]
+    public void TestNow()
+    {
+        PsLogger.Debug(PsDate.Now());
 
-            PsDate.AddSeconds = 60 * 60 * 9;
-            PsLogger.Debug(PsDate.Now());
-            PsLogger.Debug(PsDate.NowTimestampMilliSeconds());
-            Assert.True(true);
-        }
+        PsDate.AddSeconds = 60 * 60 * 9;
+        PsLogger.Debug(PsDate.Now());
+        PsLogger.Debug(PsDate.NowTimestampMilliSeconds());
+        Assert.True(true);
     }
 }

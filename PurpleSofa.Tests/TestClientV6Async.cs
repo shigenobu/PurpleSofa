@@ -3,36 +3,34 @@ using Xunit.Abstractions;
 
 namespace PurpleSofa.Tests;
 
-public class TestClientAsync
+public class TestClientV6Async
 {
-    public TestClientAsync(ITestOutputHelper helper)
+    public TestClientV6Async(ITestOutputHelper helper)
     {
         PsDate.AddSeconds = 60 * 60 * 9;
-        PsLogger.Verbose = true;
-        PsLogger.Writer = new StreamWriter(new FileStream("Test.log", FileMode.Append));
-        // PsLogger.Transfer = new PsLoggerTransfer
-        // {
-        //     Transfer = msg => helper.WriteLine(msg.ToString()),
-        //     Raw = false
-        // };
+        // PsLogger.Verbose = true;
+        PsLogger.Writer = new StreamWriter(new FileStream("TestV6.log", FileMode.Append));
     }
 
     [Fact]
-    public void TestAsyncClientClose()
+    public void TestClientCloseV6()
     {
-        var server = new PsServer(new AsyncCallbackServer());
+        var server = new PsServer(new AsyncCallbackServer())
+        {
+            SocketAddressFamily = PsSocketAddressFamily.Ipv6
+        };
         server.Start();
 
         var tasks = new List<Task>();
         for (var i = 0; i < 2; i++)
             tasks.Add(Task.Run(async () =>
             {
-                var client = new PsClient(new AsyncCallbackClient(), "127.0.0.1", 8710)
+                var client = new PsClient(new AsyncCallbackClient(), PsSocketAddressFamily.Ipv6, "::1", 8710)
                 {
                     ReadBufferSize = 1024
                 };
                 client.Connect();
-                await Task.Delay(10000);
+                await Task.Delay(5);
                 client.Disconnect();
             }));
 
@@ -45,16 +43,19 @@ public class TestClientAsync
     }
 
     [Fact]
-    public void TestAsyncServerClose()
+    public void TestServerCloseV6()
     {
-        var server = new PsServer(new AsyncCallbackServer());
+        var server = new PsServer(new AsyncCallbackServer())
+        {
+            SocketAddressFamily = PsSocketAddressFamily.Ipv6
+        };
         server.Start();
 
         var tasks = new List<Task>();
         for (var i = 0; i < 2; i++)
             tasks.Add(Task.Run(() =>
             {
-                var client = new PsClient(new AsyncCallbackClient(), "127.0.0.1", 8710);
+                var client = new PsClient(new AsyncCallbackClient(), PsSocketAddressFamily.Ipv6, "::1", 8710);
                 client.Connect();
             }));
 

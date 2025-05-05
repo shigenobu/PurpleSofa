@@ -10,60 +10,18 @@
 PurpleSofa is __'Asynchronous Programming Model (APM)'__ socket wrapper library,  
 with __'Task-based Asynchronous Pattern (TAP)'__ at callback methods.  
 Otherwise, __APM__ and __TAP__ mixed.  
-Sync methods (OnOpen, OnMessage and OnClose) are disallowed for async override.   
-If you want to use 'async',
-Async methods (OnOpenAsync, OnMessageAsync and OnCloseAsync) are override with 'UseAsyncCallback = true'.
 
 * Callback for
-    * 'OnOpen or OnOpenAsync' (accepted or connected)
-    * 'OnMessage or OnMessageAsync' (received)
-    * 'OnClose or OnCloseAsync' (received none).
+    * 'OnOpenAsync' (accepted or connected)
+    * 'OnMessageAsync' (received)
+    * 'OnCloseAsync' (received none).
 * Can store user value in session.
 * Check timeout at regular intervals by last receive time. It's useful to detect 'half close'.
-* 'OnClose or OnCloseAsync' execution is taken via queue in order to avoid simultaneously many 'close'.
-
-__(notice)__  
-
-Synchronous methods are now obsolete.  
-Please change to asynchronous methods.       
+* 'OnCloseAsync' execution is taken via queue in order to avoid simultaneously many 'close'.
 
 ## how to use
 
-### callback (sync)
-
-    public class Callback : PsCallback
-    {
-        private const string Key = "inc";
-        
-        public override void OnOpen(PsSession session)
-        {
-            Console.WriteLine($"OnOpen {session}");
-            session.SetValue(Key, 0);
-            session.ChangeIdleMilliSeconds(5000);
-
-            int inc = session.GetValue<int>(Key);
-            session.Send($"inc: {inc}");
-        }
-
-        public override void OnMessage(PsSession session, byte[] message)
-        {
-            Console.WriteLine($"OnMessage {session} {Encoding.UTF8.GetString(message)}");
-            int inc = session.GetValue<int>(Key);
-            inc++;
-            session.SetValue(Key, inc);
-            session.Send($"inc: {inc}");
-            if (inc > 3) session.Close();
-        }
-
-        public override void OnClose(PsSession session, PsCloseReason closeReason)
-        {
-            session.ClearValue(Key);
-            int inc = session.GetValue<int>(Key);
-            Console.WriteLine($"OnClose {session} {closeReason}, inc:{inc}");
-        }
-    }
-
-### callback (async)
+### callback
 
     public class AsyncCallback : PsCallback
     {

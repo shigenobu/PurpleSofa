@@ -60,12 +60,8 @@ public class PsClient
     /// <param name="socketAddressFamily">address family</param>
     /// <param name="host">host</param>
     /// <param name="port">port</param>
-    /// <exception cref="PsClientException">async method contains exception</exception>
     public PsClient(PsCallback callback, PsSocketAddressFamily socketAddressFamily, string host, int port)
     {
-        if (PsCallback.ContainsAsync(callback))
-            throw new PsClientException(
-                $"Disallow async override at {string.Join(',', PsCallback.SynchronousMethodNames.ToArray())} in {callback.GetType().FullName}, use 'xxxAsync' alternatively.");
         _callback = callback;
         _socketAddressFamily = socketAddressFamily;
         _host = host;

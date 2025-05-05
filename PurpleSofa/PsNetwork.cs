@@ -14,8 +14,7 @@ public static class PsNetwork
     /// </summary>
     private static readonly IEnumerable<NetworkInterface> NetworkInterfaces = NetworkInterface.GetAllNetworkInterfaces()
         .Where(i =>
-            i.OperationalStatus == OperationalStatus.Up &&
-            i.NetworkInterfaceType == NetworkInterfaceType.Ethernet &&
+            i is {OperationalStatus: OperationalStatus.Up, NetworkInterfaceType: NetworkInterfaceType.Ethernet} &&
             i.NetworkInterfaceType != NetworkInterfaceType.Loopback);
 
     /// <summary>

@@ -145,33 +145,9 @@ public class PsSession
     /// <param name="message">message</param>
     /// <param name="timeout">timeout</param>
     /// <exception cref="PsSendException">send error</exception>
-    [Obsolete("Use async methods instead.")]
-    public void Send(string message, int timeout = DefaultTimeoutMilliSeconds)
-    {
-        Send(message.PxToBytes(), timeout);
-    }
-
-    /// <summary>
-    ///     Send string.
-    /// </summary>
-    /// <param name="message">message</param>
-    /// <param name="timeout">timeout</param>
-    /// <exception cref="PsSendException">send error</exception>
     public async Task SendAsync(string message, int timeout = DefaultTimeoutMilliSeconds)
     {
         await SendAsync(message.PxToBytes(), timeout);
-    }
-
-    /// <summary>
-    ///     Send bytes.
-    /// </summary>
-    /// <param name="message">message</param>
-    /// <param name="timeout">timeout</param>
-    /// <exception cref="PsSendException">send error</exception>
-    [Obsolete("Use async methods instead.")]
-    public void Send(byte[] message, int timeout = DefaultTimeoutMilliSeconds)
-    {
-        SendAsync(message, timeout).ConfigureAwait(false).GetAwaiter().GetResult();
     }
 
     /// <summary>
@@ -240,8 +216,8 @@ public class PsSession
     public T? GetValue<T>(string name)
     {
         if (_values == null) return default;
-        if (!_values.ContainsKey(name)) return default;
-        return (T?) _values[name];
+        if (!_values.TryGetValue(name, out var value)) return default;
+        return (T?) value;
     }
 
     /// <summary>

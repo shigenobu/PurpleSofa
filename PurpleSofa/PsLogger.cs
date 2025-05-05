@@ -20,7 +20,7 @@ public static class PsLogger
     public static PsLoggerTransfer? Transfer { get; set; }
 
     /// <summary>
-    ///     log writer.
+    ///     Log writer.
     ///     Default is stdout writer.
     ///     If set to null, no logging.
     /// </summary>
@@ -28,7 +28,7 @@ public static class PsLogger
 
     /// <summary>
     ///     Stop logger.
-    ///     If true, all logging is stop except for Exception.
+    ///     If true, all logging is stopped except for Exception.
     /// </summary>
     public static bool StopLogger { get; set; }
 
